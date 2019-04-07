@@ -1,0 +1,27 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Web", "Web", "{2C7ECB87-D815-4D7B-90CD-39CD51E107C3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartAgrTest", "SmartAgrTest\SmartAgrTest.csproj", "{FD189097-A3D0-4E7F-A047-4EDBD0E9728F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FD189097-A3D0-4E7F-A047-4EDBD0E9728F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD189097-A3D0-4E7F-A047-4EDBD0E9728F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD189097-A3D0-4E7F-A047-4EDBD0E9728F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD189097-A3D0-4E7F-A047-4EDBD0E9728F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{FD189097-A3D0-4E7F-A047-4EDBD0E9728F} = {2C7ECB87-D815-4D7B-90CD-39CD51E107C3}
+	EndGlobalSection
+EndGlobal

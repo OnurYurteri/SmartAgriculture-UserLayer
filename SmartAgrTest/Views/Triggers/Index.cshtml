@@ -1,0 +1,191 @@
+﻿<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Tetik Eylem Listesi</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Tetik Kodu</th>
+                        <th>Kaynak Cihaz</th>
+                        <th>Veri Tipi</th>
+                        <th>Minimum</th>
+                        <th>Maksimum</th>
+                        <th>Eylem Cihazı</th>
+                        <th>Kural Mı?</th>
+                        <th>Aktif</th>
+                    </tr>
+                </thead>
+                <tbody id="dataTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="triggerModal" tabindex="-1" role="dialog" aria-labelledby="deviceModal" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header shadow">
+                <h5 class="modal-title" id="triggerModalLabel">CİHAZ ADI</h5>
+                <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="card shadow mb-4">
+                    <div class="card-header">
+                        <h6 class="m-0 font-weight-bold text-primary">Eylem Detayları</h6>
+                    </div>
+                    <div class="card-body">
+                        <label>Tetik Kodu</label>
+                        <div class="form-group">
+                            <input class="form-control form-control-user" id="labelTriggerId" placeholder="#TriggerId" disabled>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label>Kaynak Cihaz</label>
+                                <div class="dropdown mb-4">
+                                    <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownSourceButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        Dropdown
+                                    </button>
+                                    <div class="dropdown-menu scrollable-menu animated--fade-in" id="appendSensorsHere" aria-labelledby="dropdownSourceButton">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label>Veri Tipi</label>
+                                <div class="dropdown mb-4">
+                                    <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownSourceTypeButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        Dropdown
+                                    </button>
+                                    <div class="dropdown-menu scrollable-menu animated--fade-in" id="appendSourceTypesHere" aria-labelledby="dropdownSourceTypeButton">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <label>Eylem Cihazı</label>
+                        <div class="dropdown mb-4">
+                            <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownActionButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                Dropdown
+                            </button>
+                            <div class="dropdown-menu scrollable-menu animated--fade-in" id="appendRelaysHere" aria-labelledby="dropdownActionButton">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label>Minimum</label>
+                                <div class="form-group">
+                                    <input class="form-control form-control-user" id="labelMin" placeholder="Minimum Değer..">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label>Maksimum</label>
+                                <div class="form-group">
+                                    <input class="form-control form-control-user" id="labelMax" placeholder="Maksimum Değer..">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <span class="d-inline-block" tabindex="0" data-toggle="tooltip" data-placement="right" title="Varolan programların verilen minimum ve maksimum değerlerin dışında çalışmasını engeller.">
+                                <div class="custom-control custom-checkbox" id="checkDiv">
+                                    <input type="checkbox" class="custom-control-input" id="isRule">
+                                    <label class="custom-control-label" for="customCheck">Kural Mı?</label>
+                                </div>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-dismiss="modal">Kapat</button>
+                <button class="btn btn-primary" onclick="updateDevice()" id="saveButton">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var triggers;
+    var devices;
+    $(document).ready(function () {
+        dt = $('#dataTable').DataTable();
+        getDevices();
+        getTriggers();
+    });
+
+    $('#dataTable tbody').on('mouseenter', 'tr ', function () {
+        $(this).addClass('bg-gray-100 pointer');
+    });
+
+    $('#dataTable tbody').on('mouseleave', 'tr ', function () {
+        $(this).removeClass('bg-gray-100 pointer');
+    });
+
+    $('#dataTable tbody').on('click', 'tr', function () {
+        initializeTriggerModal($(this)[0].cells[0].textContent);
+    });
+    $("#checkDiv").click(function () {
+        var checkState = $("#isRule").is(":checked");
+        $("#isRule").attr('checked', !checkState);
+    });
+    $('[data-toggle="tooltip"]').tooltip();
+
+    function getTriggers() {
+        $.ajax({
+            type: "POST",
+            url: '/Triggers/GetTriggers',
+            contentType: "application/json; charset=utf-8",
+            success: function (result) {
+                triggers = result;
+                refreshTriggersTable();
+            }
+        });
+    }
+
+    function getDevices() {
+        $.ajax({
+            type: "POST",
+            url: '/Devices/GetDevices',
+            contentType: "application/json; charset=utf-8",
+            async: false,
+            success: function (result) {
+                devices = result;
+            }
+        });
+    }
+
+    function findDeviceWithChipId(chipId) {
+        if (devices != null) {
+            for (var i = 0; i < devices.length; i++) {
+                if (devices[i].ChipId === chipId) {
+                    return devices[i];
+                }
+            }
+        }
+    }
+
+    function refreshTriggersTable() {
+        var dt = $('#dataTable').DataTable();
+        dt.clear();
+        if (triggers != null) {
+            for (var i = 0; i < triggers.length; i++) {
+                //var sens = "";
+                //(devices[i].Type.TempSensor) ? sens += "/Sıcaklık" : sens += "";
+                //(devices[i].Type.MoisSensor) ? sens += "/Toprak Nem" : sens += "";
+                //(devices[i].Type.Relay) ? sens += "/Röle" : sens += "";
+                var sourceType = "";
+                (triggers[i].SourceType === "temperature") ? sourceType += "Sıcaklık" : sourceType += "";
+                (triggers[i].SourceType === "humidity") ? sourceType += "Nem" : sourceType += "";
+                (triggers[i].SourceType === "moisture") ? sourceType += "Toprak Nem" : sourceType += "";
+                var sourceDeviceStr = triggers[i].SourceChipId + " – " + findDeviceWithChipId(triggers[i].SourceChipId).Alias;
+                var actionDeviceStr = triggers[i].ActionChipId + " – " + findDeviceWithChipId(triggers[i].ActionChipId).Alias;
+                dt.row.add([triggers[i].Id, sourceDeviceStr, sourceType, triggers[i].FromVal, triggers[i].ToVal, actionDeviceStr, triggers[i].IsRule, triggers[i].Active]).draw(false);
+            }
+        }
+    }
+
+    function initializeTriggerModal(chipId) {
+        //emptyModal();
+        //var selectedDevice = findDeviceWithChipId(chipId);
+        $("#triggerModal").modal('show');
+    }
+</script>
