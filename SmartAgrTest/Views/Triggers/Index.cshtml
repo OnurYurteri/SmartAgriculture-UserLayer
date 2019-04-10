@@ -8,6 +8,7 @@
                 <thead>
                     <tr>
                         <th>Tetik Kodu</th>
+                        <th>Açıklama</th>
                         <th>Kaynak Cihaz</th>
                         <th>Veri Tipi</th>
                         <th>Minimum</th>
@@ -41,8 +42,12 @@
                         <div class="form-group">
                             <input class="form-control form-control-user" id="labelTriggerId" placeholder="#TriggerId" disabled>
                         </div>
+                        <label>Açıklama</label>
+                        <div class="form-group">
+                            <input class="form-control form-control-user" id="triggerDescription" placeholder="Açıklama girin..">
+                        </div>
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-7">
                                 <label>Kaynak Cihaz</label>
                                 <div class="dropdown mb-4">
                                     <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownSourceButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -52,7 +57,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-5">
                                 <label>Veri Tipi</label>
                                 <div class="dropdown mb-4">
                                     <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownSourceTypeButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -106,6 +111,13 @@
 <script type="text/javascript">
     var triggers;
     var devices;
+    var selectedTrigger;
+
+    String.prototype.trunc = String.prototype.trunc ||
+      function (n) {
+          return (this.length > n) ? this.substr(0, n - 1) + '...' : this;
+      };
+
     $(document).ready(function () {
         dt = $('#dataTable').DataTable();
         getDevices();
@@ -163,6 +175,16 @@
         }
     }
 
+    function findTriggerWithId(id) {
+        if (triggers != null) {
+            for (var i = 0; i < triggers.length; i++) {
+                if (triggers[i].Id === id) {
+                    return triggers[i];
+                }
+            }
+        }
+    }
+
     function refreshTriggersTable() {
         var dt = $('#dataTable').DataTable();
         dt.clear();
@@ -173,19 +195,99 @@
                 //(devices[i].Type.MoisSensor) ? sens += "/Toprak Nem" : sens += "";
                 //(devices[i].Type.Relay) ? sens += "/Röle" : sens += "";
                 var sourceType = "";
-                (triggers[i].SourceType === "temperature") ? sourceType += "Sıcaklık" : sourceType += "";
-                (triggers[i].SourceType === "humidity") ? sourceType += "Nem" : sourceType += "";
-                (triggers[i].SourceType === "moisture") ? sourceType += "Toprak Nem" : sourceType += "";
+                (triggers[i].SourceType.Temperature) ? sourceType += "Sıcaklık" : sourceType += "";
+                (triggers[i].SourceType.Humidity) ? sourceType += "Nem" : sourceType += "";
+                (triggers[i].SourceType.Moisture) ? sourceType += "Toprak Nem" : sourceType += "";
                 var sourceDeviceStr = triggers[i].SourceChipId + " – " + findDeviceWithChipId(triggers[i].SourceChipId).Alias;
                 var actionDeviceStr = triggers[i].ActionChipId + " – " + findDeviceWithChipId(triggers[i].ActionChipId).Alias;
-                dt.row.add([triggers[i].Id, sourceDeviceStr, sourceType, triggers[i].FromVal, triggers[i].ToVal, actionDeviceStr, triggers[i].IsRule, triggers[i].Active]).draw(false);
+                dt.row.add([triggers[i].Id, triggers[i].Description, sourceDeviceStr, sourceType, triggers[i].FromVal, triggers[i].ToVal, actionDeviceStr, triggers[i].IsRule, triggers[i].Active]).draw(false);
             }
         }
     }
 
-    function initializeTriggerModal(chipId) {
-        //emptyModal();
-        //var selectedDevice = findDeviceWithChipId(chipId);
+    function emptyModal() {
+        $("#triggerModalLabel").empty();
+        $("#labelTriggerId").val("");
+        $("#triggerDescription").val("");
+        $("#dropdownSourceButton").empty();
+        $("#appendSensorsHere").empty();
+        $("#dropdownSourceTypeButton").empty();
+        $("#appendSourceTypesHere").empty();
+    }
+
+    function initializeTriggerModal(id) {
+        emptyModal();
+        console.log(id);
+        selectedTrigger = cloneObj(findTriggerWithId(id));
+        $("#triggerModalLabel").append("#" + selectedTrigger.ActionChipId + " − " + selectedTrigger.Description);
+        $("#labelTriggerId").val(selectedTrigger.Id);
+        $("#triggerDescription").val(selectedTrigger.Description);
+        var selectedSourceDevice = findDeviceWithChipId(selectedTrigger.SourceChipId);
+        $("#dropdownSourceButton").append((selectedSourceDevice.ChipId + " − " + selectedSourceDevice.Alias).trunc(21));
+        for (var i = 0; i < devices.length; i++) {
+            if (devices[i].Type.TempSensor || devices[i].Type.MoisSensor) {
+                $("#appendSensorsHere").append('<button class="dropdown-item" onclick="selectNewSensor($(this))" id="' + devices[i].ChipId + '">' + devices[i].ChipId + ' − ' + devices[i].Alias + '</button>');
+            }
+        }
+        var sourceTypeStr = "";
+        (selectedTrigger.SourceType.Temperature) ? sourceTypeStr += "Sıcaklık" : sourceTypeStr += "";
+        (selectedTrigger.SourceType.Humidity) ? sourceTypeStr += "Nem" : sourceTypeStr += "";
+        (selectedTrigger.SourceType.Moisture) ? sourceTypeStr += "Toprak Nem" : sourceTypeStr += "";
+        $("#dropdownSourceTypeButton").append(sourceTypeStr);
+        if (selectedSourceDevice.Type.TempSensor) {
+            $("#appendSourceTypesHere").append('<button class="dropdown-item" onclick="selectNewSourceType(0)" id="' + selectedSourceDevice.ChipId + '">Sıcaklık</button>');
+            $("#appendSourceTypesHere").append('<button class="dropdown-item" onclick="selectNewSourceType(1)" id="' + selectedSourceDevice.ChipId + '">Nem</button>');
+        }
+        if (selectedSourceDevice.Type.MoisSensor) {
+            $("#appendSourceTypesHere").append('<button class="dropdown-item" onclick="selectNewSourceType(2)" id="' + selectedSourceDevice.ChipId + '">Toprak Nem</button>');
+        }
+
+
         $("#triggerModal").modal('show');
+    }
+
+    function selectNewSensor(btn) {
+        console.log("yeni sensor: " + btn[0].id);
+        selectedTrigger.SourceChipId = btn[0].id;
+        var selectedSourceDevice = findDeviceWithChipId(btn[0].id);
+        $("#dropdownSourceButton").empty();
+        $("#dropdownSourceButton").append((selectedSourceDevice.ChipId + " − " + selectedSourceDevice.Alias).trunc(21));
+        selectedTrigger.SourceType.Temperature = false;
+        selectedTrigger.SourceType.Humidity = false;
+        selectedTrigger.SourceType.Moisture = false;
+        $("#dropdownSourceTypeButton").empty();
+        $("#appendSourceTypesHere").empty();
+        if (selectedSourceDevice.Type.TempSensor) {
+            $("#appendSourceTypesHere").append('<button class="dropdown-item" onclick="selectNewSourceType(0)" id="' + selectedSourceDevice.ChipId + '">Sıcaklık</button>');
+            $("#appendSourceTypesHere").append('<button class="dropdown-item" onclick="selectNewSourceType(1)" id="' + selectedSourceDevice.ChipId + '">Nem</button>');
+        }
+        if (selectedSourceDevice.Type.MoisSensor) {
+            $("#appendSourceTypesHere").append('<button class="dropdown-item" onclick="selectNewSourceType(2)" id="' + selectedSourceDevice.ChipId + '">Toprak Nem</button>');
+        }
+    }
+
+    function selectNewSourceType(sourceTypeId) { //0: temperature, 1: humidity, 2:moisture
+        selectedTrigger.SourceType.Temperature = false;
+        selectedTrigger.SourceType.Humidity = false;
+        selectedTrigger.SourceType.Moisture = false;
+        var sourceTypeStr = ""
+        if (sourceTypeId == 0) {
+            sourceTypeStr += "Sıcaklık";
+            selectedTrigger.SourceType.Temperature = true;
+        }
+        else if (sourceTypeId == 1) {
+            sourceTypeStr += "Nem";
+            selectedTrigger.SourceType.Humidity = true;
+        }
+        else {
+            sourceTypeStr += "Toprak Nem";
+            selectedTrigger.SourceType.Moisture = true;
+        }
+        $("#dropdownSourceTypeButton").empty();
+        $("#dropdownSourceTypeButton").append(sourceTypeStr);
+    }
+
+    function cloneObj(obj) {
+        return JSON.parse(JSON.stringify(obj));
     }
 </script>

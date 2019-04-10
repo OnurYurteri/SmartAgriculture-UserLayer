@@ -49,6 +49,7 @@ namespace SmartAgrTest.Models
                     Builders<TriggerEntity>.Filter.Eq("_id", ObjectId.Parse(trigger.Id)),
                     Builders<TriggerEntity>.Update
                         .Set("active", trigger.Active)
+                        .Set("description", trigger.Description)
                         .Set("sourceChipId", trigger.SourceChipId)
                         .Set("actionChipId", trigger.ActionChipId)
                         .Set("sourceType", trigger.SourceType)

@@ -24,6 +24,13 @@ namespace SmartAgrTest.Entitites
             set;
         }
 
+        [BsonElement("description")]
+        public string Description
+        {
+            get;
+            set;
+        }
+
         [BsonElement("sourceChipId")]
         public string SourceChipId
         {
@@ -39,7 +46,7 @@ namespace SmartAgrTest.Entitites
         }
 
         [BsonElement("sourceType")]
-        public string SourceType
+        public SourceType SourceType
         {
             get;
             set;
@@ -61,6 +68,30 @@ namespace SmartAgrTest.Entitites
 
         [BsonElement("isRule")]
         public bool IsRule
+        {
+            get;
+            set;
+        }
+    }
+
+    public class SourceType
+    {
+        [BsonElement("temperature")]
+        public bool Temperature
+        {
+            get;
+            set;
+        }
+
+        [BsonElement("humidity")]
+        public bool Humidity
+        {
+            get;
+            set;
+        }
+
+        [BsonElement("moisture")]
+        public bool Moisture
         {
             get;
             set;
