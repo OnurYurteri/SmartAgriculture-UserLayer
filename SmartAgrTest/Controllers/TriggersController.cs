@@ -42,5 +42,32 @@ namespace SmartAgrTest.Controllers
             var triggers = triggerModel.findAll();
             return Json(triggers, JsonRequestBehavior.AllowGet);
         }
+
+        [HttpPost]
+        public JsonResult UpdateTrigger(TriggerEntity triggerToUpdate)
+        {
+            
+            if (triggerModel.update(triggerToUpdate))
+            {
+                return Json(new { success = true }, JsonRequestBehavior.AllowGet);
+            }
+            else
+            {
+                return Json(new { success = false }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        [HttpPost]
+        public JsonResult InsertTrigger(TriggerEntity triggerToInsert)
+        {
+            if (triggerModel.insert(triggerToInsert))
+            {
+                return Json(new { success = true }, JsonRequestBehavior.AllowGet);
+            }
+            else
+            {
+                return Json(new { success = false }, JsonRequestBehavior.AllowGet);
+            }
+        }
     }
 }
