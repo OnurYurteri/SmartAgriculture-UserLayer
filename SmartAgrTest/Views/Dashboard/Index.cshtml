@@ -98,6 +98,16 @@
         });
     }
 
+    function findDeviceWithChipId(chipId) {
+        if (devices != null) {
+            for (var i = 0; i < devices.length; i++) {
+                if (devices[i].ChipId === chipId) {
+                    return devices[i];
+                }
+            }
+        }
+    }
+
     function sendDataToMQTT(topic, message) {
         var client;
         client = new Paho.MQTT.Client("192.168.43.254", 9001, "clientId");
@@ -162,6 +172,8 @@
             for (var i = 0; i < devices.length; i++) {
                 if (devices[i].Type.Relay) {
                     $("#appendRelayDevices").append(collapsableRelayCardHtml(devices[i]));
+                    $('#toggle-' + devices[i].ChipId).bootstrapToggle();
+                    $('#toggle-' + devices[i].ChipId).prop('checked', devices[i].RelayState).change();
                     var duration = moment.duration(moment().locale('tr').diff(moment(devices[i].LastActive.Now).locale('tr')));
                     if (duration.asSeconds() > 5) {
                         $("#collapseCardHeaderR-" + devices[i].ChipId).parent().addClass("border-left-warning");
@@ -220,7 +232,8 @@
                         //content
                             '<div class="collapse" id="collapseCardR-' + device.ChipId + '">' +
                                 '<div class="card-body">' +
-                                    'This is a collapsable card example using Bootstrap\'s built in collapse functionality. <strong>Click on the card header</strong> to see the card body collapse and expand!' +
+                                    '<input type="checkbox" id="toggle-' + device.ChipId + '" data-toggle="toggle" data-on="Aktif" data-off="Pasif" data-onstyle="success" data-offstyle="danger" data-width="100" data-size="lg" onchange="toggleRelay($(this))">' +
+                                    '<div id="toggleStatus-' + device.ChipId + '" class="btn btn-success btn-circle btn-sm" style="margin-left:15px;"><i class="fas fa-check"></i></div>' +
                                 '</div>' +
                             '</div>' +
                         '</div>';
@@ -391,17 +404,67 @@
         chart.update();
     }
 
+    
+
+    function toggleRelay(checkbox) {
+        var toggledChipId = checkbox[0].id.split('-')[1];
+        var status = checkbox[0].checked;
+        if (findDeviceWithChipId(toggledChipId).RelayState==status) {
+            return;
+        }
+        console.log("toggled", toggledChipId, "status", status);
+        setRelayState(toggledChipId, status);
+        if ($("#toggleStatus-" + toggledChipId).hasClass("btn-success")) {
+            $("#toggleStatus-" + toggledChipId).removeClass("btn-success");
+            $("#toggleStatus-" + toggledChipId).addClass("btn-info");
+            $("#toggleStatus-" + toggledChipId).empty();
+            $("#toggleStatus-" + toggledChipId).append('<i class="fas fa-sync-alt fa-spin"></i>');
+            checkbox[0].disabled = true;
+        }
+    }//TODO
+
+    function updateRelayStatus(relayChipId) {
+        console.log("updateRelayStatus içinde");
+        var updatedRelay;
+        $.ajax({
+            type: "GET",
+            url: '/Devices/GetDeviceWithChipId',
+            data: { "chipId": relayChipId },
+            dataType: "json",
+            contentType: "application/json; charset=utf-8",
+            async: false,
+            success: function (result) {
+                if ($("#toggle-" + relayChipId)[0].checked != result.RelayState && $("#toggleStatus-" + relayChipId).hasClass("btn-info")) {
+                    return;
+                }
+                if ($("#toggle-" + relayChipId)[0].checked == result.RelayState && $("#toggleStatus-" + relayChipId).hasClass("btn-info")) {
+                    $("#toggleStatus-" + relayChipId).removeClass("btn-info");
+                    $("#toggleStatus-" + relayChipId).addClass("btn-success");
+                    $("#toggleStatus-" + relayChipId).empty();
+                    $("#toggleStatus-" + relayChipId).append('<i class="fas fa-check"></i>');
+                }
+                findDeviceWithChipId(relayChipId).RelayState = result.RelayState;
+                $('#toggle-' + relayChipId).prop('checked', result.RelayState).change();
+                $("#toggle-" + relayChipId)[0].disabled = false;
+            }
+        });
+    }
+
     function updateDataAndGauges() {
         setInterval(function () {
             console.log("Veriler yenilendi");
             for (var i = 0; i < devices.length; i++) {
-                getLastMeasurement(devices[i].ChipId);
                 if (devices[i].Type.TempSensor) {
+                    getLastMeasurement(devices[i].ChipId);
                     updateTempGauge(devices[i].ChipId);
                     updateTempMoisGauge(devices[i].ChipId);
                 }
                 if (devices[i].Type.MoisSensor) {
+                    getLastMeasurement(devices[i].ChipId);
                     updateSoilMoisGauge(devices[i].ChipId);
+                }
+                if (devices[i].Type.Relay) {
+                    updateRelayStatus(devices[i].ChipId);
                 }
             }
         }, 2000);

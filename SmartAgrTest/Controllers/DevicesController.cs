@@ -42,6 +42,14 @@ namespace SmartAgrTest.Controllers
             return Json(devices, JsonRequestBehavior.AllowGet);
         }
 
+        
+        public JsonResult GetDeviceWithChipId(string chipId)
+        {
+            var device = deviceModel.findWithChipId(chipId);
+            return Json(device, JsonRequestBehavior.AllowGet);
+        }
+
+
         [HttpPost]
         public JsonResult GetRelays()
         {

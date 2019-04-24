@@ -12,7 +12,8 @@ namespace SmartAgrTest
                 "~/Content/vendor/nunitoFont.css",
                 "~/Content/vendor/datatables/dataTables.bootstrap4.min.css",
                 "~/Content/vendor/tempusdominus-bootstrap-4.min.css",
-                "~/Content/css/sb-admin-2.min.css"));
+                "~/Content/css/sb-admin-2.min.css",
+                "~/Content/vendor/bootstrap4-toggle/bootstrap4-toggle.min.css"));
 
             bundles.Add(new ScriptBundle("~/bundles/js")
                 .Include(
@@ -26,7 +27,8 @@ namespace SmartAgrTest
                 "~/Content/vendor/moment-with-locales.js",
                 "~/Content/vendor/tempusdominus-bootstrap-4.min.js",
                 "~/Content/vendor/paho-mqtt.js",
-                "~/Content/vendor/chart.js/Chart.RadialGauge.umd.js"));
+                "~/Content/vendor/chart.js/Chart.RadialGauge.umd.js",
+                "~/Content/vendor/bootstrap4-toggle/bootstrap4-toggle.min.js"));
         }
     }
 }
