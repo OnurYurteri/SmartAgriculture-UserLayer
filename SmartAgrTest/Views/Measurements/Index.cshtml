@@ -1,0 +1,106 @@
+﻿<div id="prependNewCardHere" class="row">
+    <div class="col-xl-6 col-md-6 mb-4">
+        <div id="appendNewCard" class="card shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters justify-content-center align-items-center h-100">
+                    <div class="col-auto">
+                        <i class="fas fa-plus fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+<script type="text/javascript">
+    var cardCount = 0;
+    var devices;
+    $(document).ready(function () {
+        getDevices();
+    });
+
+    $("#appendNewCard").hover(function () { $(this).addClass("bg-gray-100"); }, function () { $(this).removeClass("bg-gray-100"); });
+    $("#appendNewCard").click(function (e) {
+        $('<div class="col-xl-6 col-md-6 mb-4">' +
+            '<div class="card shadow h-100 py-2">'+
+                '<div id="card-'+(++cardCount)+'" class="card-body">' +
+                '</div>'+
+            '</div>'+
+          '</div>').insertBefore($("#appendNewCard").parent());
+        initializeMeasurementCard(cardCount);
+    });
+
+    function getDevices() {
+        $.ajax({
+            type: "POST",
+            url: '/Devices/GetDevices',
+            contentType: "application/json; charset=utf-8",
+            success: function (result) {
+                devices = result;
+            }
+        });
+    };
+
+    function findDeviceWithChipId(chipId) {
+        if (devices != null) {
+            for (var i = 0; i < devices.length; i++) {
+                if (devices[i].ChipId === chipId) {
+                    return devices[i];
+                }
+            }
+        }
+    };
+
+    function initializeMeasurementCard(cardId) {
+        $("#card-" + cardId).append('<div class="row"><div class="col-md-4" style="display:table;"><label>Cihaz</label>' +
+                                    '<div class="dropdown mb-4">' +
+                                        '<button class="btn btn-primary dropdown-toggle" type="button" id="dropdownSelectedDevice-' + cardCount + '" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>' +
+                                        '<div class="dropdown-menu scrollable-menu animated--fade-in" id="dropdownDevices-' + cardCount + '" aria-labelledby="dropdownDevices-' + cardCount + '"></div>' +
+                                    '</div></div>' +
+                                    '<div class="col-md-4"><label>Veri Tipi</label>' +
+                                    '<div class="dropdown mb-4">' +
+                                        '<button class="btn btn-primary dropdown-toggle" type="button" id="dropdownSelectedType-' + cardCount + '" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>' +
+                                        '<div class="dropdown-menu scrollable-menu animated--fade-in" id="dropdownTypes-' + cardCount + '" aria-labelledby="dropdownMenuButton"></div>' +
+                                    '</div></div></div>');
+        if (devices != null) {
+            for (var i = 0; i < devices.length; i++) {
+                if (devices[i].Type.TempSensor || devices[i].Type.MoisSensor) {
+                    $("#dropdownDevices-" + cardCount).append('<button class="dropdown-item" onclick="dropdownselectDevice($(this),' + cardCount + ')" id="' + devices[i].ChipId + '">' + devices[i].ChipId + ' − ' + devices[i].Alias + '</button>');
+                }
+            }
+        }
+        console.log(cardId);
+    };
+
+    function dropdownselectDevice(btn, cardId) {//0: temperature, 1: humidity, 2:moisture
+        var selectedDevice = findDeviceWithChipId(btn[0].id);
+        $("#dropdownSelectedDevice-" + cardId).empty();
+        $("#dropdownSelectedDevice-" + cardId).append(selectedDevice.ChipId + " - " + selectedDevice.Alias);
+        $("#dropdownSelectedType-" + cardId).empty();
+        $("#dropdownTypes-" + cardId).empty();
+        if (selectedDevice.Type.TempSensor) {
+            $("#dropdownTypes-" + cardId).append('<button class="dropdown-item" onclick="dropdownSelectType(0,' + cardId + ')">Sıcaklık</button>');
+            $("#dropdownTypes-" + cardId).append('<button class="dropdown-item" onclick="dropdownSelectType(1,' + cardId + ')">Nem</button>');
+        }
+        else if (selectedDevice.Type.MoisSensor) {
+            $("#dropdownTypes-" + cardId).append('<button class="dropdown-item" onclick="dropdownSelectType(2,' + cardId + ')">Toprak Nemi</button>');
+        }
+
+        console.log(btn[0].id, cardId);
+    };
+
+    function dropdownSelectType(type, cardId) {
+        $("#dropdownSelectedType-" + cardId).empty();
+        if (type===0) {
+            $("#dropdownSelectedType-" + cardId).append("Sıcaklık");
+        }
+        else if (type===1) {
+            $("#dropdownSelectedType-" + cardId).append("Nem");
+        }
+        else if (type===2) {
+            $("#dropdownSelectedType-" + cardId).append("Toprak Nemi");
+        }
+        
+    };
+</script>

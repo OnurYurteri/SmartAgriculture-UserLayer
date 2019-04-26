@@ -1,0 +1,186 @@
+﻿<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Cihaz Listesi</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Cihaz ID</th>
+                        <th>Takma Ad</th>
+                        <th>Sensör</th>
+                        <th>En Son Aktif</th>
+                    </tr>
+                </thead>
+                <tbody id="dataTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="deviceModal" tabindex="-1" role="dialog" aria-labelledby="deviceModal" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header shadow">
+                <h5 class="modal-title" id="deviceModalLabel">CİHAZ ADI</h5>
+                <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="card shadow mb-4">
+                    <div class="card-header">
+                        <h6 class="m-0 font-weight-bold text-primary">Cihaz Detayları</h6>
+                    </div>
+                    <div class="card-body">
+                        <label>Chip ID</label>
+                        <div class="form-group">
+                            <input class="form-control form-control-user" id="labelChipId" placeholder="#ChipId" disabled>
+                        </div>
+                        <label>Takma Ad</label>
+                        <div class="form-group">
+                            <input class="form-control form-control-user" id="labelAlias" placeholder="Takma ad girin.." >
+                        </div>
+                        <label>Bağlı Sensörler</label>
+                        <div class="form-group">
+                            <div class="custom-control custom-checkbox col-sm-6 mb-3 mb-sm-0">
+                                <input type="checkbox" class="custom-control-input" id="checkTempSensor" disabled>
+                                <label class="custom-control-label" for="customCheck">Sıcaklık/Nem</label>
+                            </div>
+                            <div class="custom-control custom-checkbox col-sm-6 mb-3 mb-sm-0">
+                                <input type="checkbox" class="custom-control-input" id="checkMoisSensor" disabled>
+                                <label class="custom-control-label" for="customCheck">Toprak Nem</label>
+                            </div>
+                            <div class="custom-control custom-checkbox col-sm-6 mb-3 mb-sm-0">
+                                <input type="checkbox" class="custom-control-input" id="checkRelay" disabled>
+                                <label class="custom-control-label" for="customCheck">Röle</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-dismiss="modal">Kapat</button>
+                <button class="btn btn-primary" onclick="updateDevice()" id="saveButton">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var devices;
+    var dt;
+    $(document).ready(function () {
+        dt = $('#dataTable').DataTable({
+            createdRow: function (row, data, index) {
+                var duration = moment.duration(moment().locale('tr').diff(moment(data[3], "DD.MM.YYYY HH:mm:ss").locale('tr')))
+                if (duration.asSeconds()>5) {
+                    $('td:eq(0)',row).addClass("border-left-warning");
+                }
+                else {
+                    $('td:eq(0)', row).addClass("border-left-success");
+                }
+            }
+        });
+        getDevices();
+    });
+
+    $('#dataTable tbody').on('mouseenter', 'tr ', function () {
+        $(this).addClass('bg-gray-100 pointer');
+    });
+
+    $('#dataTable tbody').on('mouseleave', 'tr ', function () {
+        $(this).removeClass('bg-gray-100 pointer');
+    });
+
+    $('#dataTable tbody').on('click' ,'tr', function () {
+        initializeDeviceModal($(this)[0].cells[0].textContent);
+    });
+
+    function getDevices() {
+        $.ajax({
+            type: "POST",
+            url: '/Devices/GetDevices',
+            contentType: "application/json; charset=utf-8",
+            success: function (result) {
+                devices = result;
+                refreshDevicesTable();
+            }
+        });
+    }
+
+    function refreshDevicesTable() {
+        var dt = $('#dataTable').DataTable();
+        dt.clear();
+        if (devices!=null) {
+            for (var i = 0; i < devices.length; i++) {
+                var sens="";
+                (devices[i].Type.TempSensor) ? sens+="/Sıcaklık" : sens+="";
+                (devices[i].Type.MoisSensor) ? sens+="/Toprak Nem" : sens+="";
+                (devices[i].Type.Relay) ? sens += "/Röle" : sens += "";
+                
+                dt.row.add([devices[i].ChipId, devices[i].Alias, sens, moment(devices[i].LastActive.Now).locale('tr').format('DD.MM.YYYY HH:mm:ss')]).draw(false);
+            }
+        }
+    }
+
+    function initializeDeviceModal(chipId) {
+        emptyModal();
+        var selectedDevice = findDeviceWithChipId(chipId);
+        $("#deviceModalLabel").append("#" + selectedDevice.ChipId + " − " + selectedDevice.Alias);
+        $("#labelChipId").val(selectedDevice.ChipId);
+        $("#labelAlias").val(selectedDevice.Alias);
+        if (selectedDevice.Type.TempSensor) {
+            $("#checkTempSensor").attr('checked',true);
+        }
+        if (selectedDevice.Type.MoisSensor) {
+            $("#checkMoisSensor").attr('checked', true);
+        }
+        if (selectedDevice.Type.Relay) {
+            $("#checkRelay").attr('checked', true);
+        }
+        $("#deviceModal").modal('show');
+    }
+
+    function emptyModal() {
+        $("#deviceModalLabel").empty();
+        $("#checkTempSensor").attr('checked', false);
+        $("#checkMoisSensor").attr('checked', false);
+        $("#checkRelay").attr('checked', false);
+    }
+    
+    function findDeviceWithChipId(chipId) {
+        if (devices != null) {
+            for (var i = 0; i < devices.length; i++) {
+                if (devices[i].ChipId === chipId) {
+                    return devices[i];
+                }
+            }
+        }
+    }
+
+    function updateDevice() {
+        var deviceToUpdate = new Object();
+        deviceToUpdate.ChipId = $("#labelChipId").val();
+        deviceToUpdate.Alias = $("#labelAlias").val();
+        $.ajax({
+            type: "POST",
+            url: '/Devices/UpdateDevice',
+            contentType: "application/json; charset=utf-8",
+            data: JSON.stringify(deviceToUpdate),
+            dataType: "json",
+            success: function (result) {
+                console.log(result);
+                if (result.success) {
+                    getDevices();
+                    $("#deviceModal").modal('hide');
+                }
+                else {
+                    alert("Başarısız!");
+                }
+            }
+        });
+    }
+</script>
+
+

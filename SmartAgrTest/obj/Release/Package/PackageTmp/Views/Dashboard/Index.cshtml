@@ -1,0 +1,472 @@
+﻿<div class="row">
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div id="devicesCard" class="card border-left-primary shadow h-100 py-2 pointer">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Bağlı Cihaz</div>
+                        <div id="deviceCount" class="h5 mb-0 font-weight-bold text-gray-800"></div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-microchip fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div id="schedulesCard" class="card border-left-success shadow h-100 py-2 pointer">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Zamanlanmış Eylem</div>
+                        <div id="scheduleCount" class="h5 mb-0 font-weight-bold text-gray-800"></div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div id="triggersCard" class="card border-left-info shadow h-100 py-2 pointer">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Tetik Eylem</div>
+                        <div id="triggerCount" class="h5 mb-0 font-weight-bold text-gray-800"></div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-bolt fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+</div>
+<div class="row">
+    <div class="col-lg-6" id="appendSensorDevices">
+
+    </div>
+    <div class="col-lg-6" id="appendRelayDevices">
+
+    </div>
+</div>
+
+
+
+<script type="text/javascript">
+    var devices;
+    var schedules;
+    var triggers;
+    var gauges = new Object();
+    var gaugeConfig = new Object();
+    var lastMeasurements = new Object();
+
+    $(document).ready(function () {
+        getDevices();
+        getSchedules();
+        getTriggers();
+    });
+    $("#devicesCard").hover(function () { $(this).addClass("bg-gray-100"); }, function () { $(this).removeClass("bg-gray-100"); });
+    $("#schedulesCard").hover(function () { $(this).addClass("bg-gray-100"); }, function () { $(this).removeClass("bg-gray-100"); });
+    $("#triggersCard").hover(function () { $(this).addClass("bg-gray-100"); }, function () { $(this).removeClass("bg-gray-100"); });
+    devicesCard.onclick = function () {
+        window.location.href = "/Devices";
+    }
+    schedulesCard.onclick = function () {
+        window.location.href = "/Schedules";
+    }
+    triggersCard.onclick = function () {
+        window.location.href = "/Triggers";
+    }
+
+    function getDevices() {
+        $.ajax({
+            type: "POST",
+            url: '/Devices/GetDevices',
+            contentType: "application/json; charset=utf-8",
+            success: function (result) {
+                devices = result;
+                $("#deviceCount")[0].innerHTML = "";
+                $("#deviceCount").append(devices.length);
+                appendCollapsables();
+            }
+        });
+    }
+
+    function findDeviceWithChipId(chipId) {
+        if (devices != null) {
+            for (var i = 0; i < devices.length; i++) {
+                if (devices[i].ChipId === chipId) {
+                    return devices[i];
+                }
+            }
+        }
+    }
+
+    function sendDataToMQTT(topic, message) {
+        var client;
+        client = new Paho.MQTT.Client("192.168.43.254", 9001, "clientId");
+        client.connect({
+            //useSSL: true,
+            userName: "mqttUser",
+            password: "extremePass",
+            onSuccess: onConnect
+        });
+
+        function onConnect() {
+            // Once a connection has been made, make a subscription and send a message.
+            console.log(topic,message);
+            message = new Paho.MQTT.Message(message);
+            message.destinationName = topic;
+            client.send(message);
+            client.disconnect();
+        };
+    };
+
+    function setRelayState(device, relayState) {//OBJE GONDEREREK ÇALIŞTIRMA DENENMEDİ
+        var state="";
+        (relayState)?state+='1':state+='0';
+        if (typeof device === 'object' && device != null) {
+            sendDataToMQTT("esp8266-in/" + device.ChipId + "/", state);
+        }
+        else {
+            sendDataToMQTT("esp8266-in/" + device + "/", state);
+        }
+    }
+
+    function getSchedules() {
+        $.ajax({
+            type: "POST",
+            url: '/Schedules/GetSchedules',
+            contentType: "application/json; charset=utf-8",
+            success: function (result) {
+                schedules = result;
+                $("#scheduleCount")[0].innerHTML = "";
+                $("#scheduleCount").append(schedules.length);
+            }
+        });
+    }
+
+    function getTriggers() {
+        $.ajax({
+            type: "POST",
+            url: '/Triggers/GetTriggers',
+            contentType: "application/json; charset=utf-8",
+            success: function (result) {
+                schedules = result;
+                $("#triggerCount")[0].innerHTML = "";
+                $("#triggerCount").append(schedules.length);
+            }
+        });
+    }
+
+    function appendCollapsables() {
+        $("#appendSensorDevices").empty();
+        $("#appendRelayDevices").empty();
+        if (devices != null) {
+            for (var i = 0; i < devices.length; i++) {
+                if (devices[i].Type.Relay) {
+                    $("#appendRelayDevices").append(collapsableRelayCardHtml(devices[i]));
+                    $('#toggle-' + devices[i].ChipId).bootstrapToggle();
+                    $('#toggle-' + devices[i].ChipId).prop('checked', devices[i].RelayState).change();
+                    var duration = moment.duration(moment().locale('tr').diff(moment(devices[i].LastActive.Now).locale('tr')));
+                    if (duration.asSeconds() > 5) {
+                        $("#collapseCardHeaderR-" + devices[i].ChipId).parent().addClass("border-left-warning");
+                    }
+                    else {
+                        $("#collapseCardHeaderR-" + devices[i].ChipId).parent().addClass("border-left-success");
+                    }
+                }
+                if (devices[i].Type.TempSensor == true || devices[i].Type.MoisSensor == true) {
+                    $("#appendSensorDevices").append(collapsableSensorCardHtml(devices[i]));
+                    gauges[devices[i].ChipId] = new Object();
+                    var duration = moment.duration(moment().locale('tr').diff(moment(devices[i].LastActive.Now).locale('tr')));
+                    if (duration.asSeconds() > 5) {
+                        $("#collapseCardHeaderS-" + devices[i].ChipId).parent().addClass("border-left-warning");
+                    }
+                    else {
+                        $("#collapseCardHeaderS-" + devices[i].ChipId).parent().addClass("border-left-success");
+                    }
+                    if (devices[i].Type.TempSensor) {
+                        $("#collapseCardS-" + devices[i].ChipId + " div").append(tempSensorGauges(devices[i]));
+                        initializeTempGauge(devices[i].ChipId);
+                        initializeTempMoisGauge(devices[i].ChipId);
+                    }
+                    if (devices[i].Type.MoisSensor) {
+                        $("#collapseCardS-" + devices[i].ChipId + " div").append(soilMoisGauge(devices[i]));
+                        initializeSoilMoisGauge(devices[i].ChipId);
+                    }
+                }
+            }
+
+            updateDataAndGauges();
+        }
+    }
+
+    function collapsableSensorCardHtml(device) {
+        return htmlString = '<div class="card shadow mb-4">' +
+                        //acordion
+                            '<a href="#collapseCardS-' + device.ChipId + '" class="d-block card-header py-3 collapsed" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseCardS-' + device.ChipId + '" id="collapseCardHeaderS-' + device.ChipId + '">' +
+                            '<h6 class="m-0 font-weight-bold text-primary">#' + device.ChipId + ' – ' + device.Alias + '</h6>' +
+                            '</a>' +
+                        //content
+                            '<div class="collapse" id="collapseCardS-' + device.ChipId + '">' +
+                                '<div class="card-body">' +
+
+                                '</div>' +
+                            '</div>' +
+                        '</div>';
+    }
+
+    function collapsableRelayCardHtml(device) {
+        return htmlString = '<div class="card shadow mb-4">' +
+                        //acordion
+                            '<a href="#collapseCardR-' + device.ChipId + '" class="d-block card-header py-3 collapsed" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseCardR-' + device.ChipId + '" id="collapseCardHeaderR-' + device.ChipId + '">' +
+                            '<h6 class="m-0 font-weight-bold text-primary">#' + device.ChipId + ' – ' + device.Alias + '</h6>' +
+                            '</a>' +
+                        //content
+                            '<div class="collapse" id="collapseCardR-' + device.ChipId + '">' +
+                                '<div class="card-body">' +
+                                    '<input type="checkbox" id="toggle-' + device.ChipId + '" data-toggle="toggle" data-on="Aktif" data-off="Pasif" data-onstyle="success" data-offstyle="danger" data-width="100" data-size="lg" onchange="toggleRelay($(this))">' +
+                                    '<div id="toggleStatus-' + device.ChipId + '" class="btn btn-success btn-circle btn-sm" style="margin-left:15px;"><i class="fas fa-check"></i></div>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>';
+    }
+
+    function tempSensorGauges(device) {
+        return '<div class="row">' +
+                    '<div class="col-md-6" ><canvas id="tempGauge-' + device.ChipId + '"></canvas></div>' +
+                    '<div class="col-md-6"><canvas id="tempMoisGauge-' + device.ChipId + '"></canvas></div>' +
+               '</div>';
+    }
+
+    function soilMoisGauge(device) {
+        return '<div class="col-md-6"><canvas id="soilMoisChartGauge-' + device.ChipId + '"></canvas></div>';
+    }
+
+    function getLastMeasurement(chipId) {
+        $.ajax({
+            type: "GET",
+            url: '/Measurements/getLastMeasurement',
+            data: { "chipId": chipId },
+            dataType: "json",
+            contentType: "application/json; charset=utf-8",
+            async: false,
+            success: function (result) {
+                lastMeasurements[chipId] = new Object();
+                lastMeasurements[chipId] = result;
+            }
+        });
+    }
+
+    function initializeTempGauge(chipId) {
+
+        var config = {
+            type: 'radialGauge',
+            data: {
+                labels: ['Sıcaklık'],
+                datasets: [
+                  {
+                      data: [0],
+                      backgroundColor: ["rgb(54, 162, 235)"],
+                      label: 'Derece',
+                      borderWidth: 0
+                  }
+                ]
+            },
+            options: {
+                responsive: true,
+                legend: {},
+                title: {
+                    display: true,
+                    text: 'Sıcaklık Değeri'
+                },
+
+                centerArea: {
+                    fontColor: '#fff',
+                    backgroundColor: 'rgba(0,0,0,0.6)'
+                }
+
+            }
+        };
+
+        var ctx = document.getElementById('tempGauge-' + chipId).getContext('2d');
+        gauges[chipId].Temperature = new Object();
+        gauges[chipId].Temperature = new Chart(ctx, config);
+    }
+
+    function updateTempGauge(chipId) {
+        var chart = gauges[chipId].Temperature;
+        chart.data.datasets.forEach((dataset) => {
+            dataset.data = dataset.data.map(function () {
+                return lastMeasurements[chipId].Temperature;
+            });
+        });
+        chart.update();
+    }
+
+    function initializeTempMoisGauge(chipId) {
+
+        var config = {
+            type: 'radialGauge',
+            data: {
+                labels: ['Nem'],
+                datasets: [
+                  {
+                      data: [0],
+                      backgroundColor: ["rgb(54, 162, 235)"],
+                      label: '%',
+                      borderWidth: 0
+                  }
+                ]
+            },
+            options: {
+                responsive: true,
+                legend: {},
+                title: {
+                    display: true,
+                    text: 'Nem Değeri'
+                },
+                centerArea: {
+                    fontColor: '#fff',
+                    backgroundColor: 'rgba(0,0,0,0.6)',
+                    text: function (value, options) {
+                        return value + '%';
+                    }
+                }
+            }
+        };
+
+        var ctx = document.getElementById('tempMoisGauge-' + chipId).getContext('2d');
+        gauges[chipId].TempMois = new Object();
+        gauges[chipId].TempMois = new Chart(ctx, config);
+    }
+
+    function updateTempMoisGauge(chipId) {
+        var chart = gauges[chipId].TempMois;
+        chart.data.datasets.forEach((dataset) => {
+            dataset.data = dataset.data.map(function () {
+                return lastMeasurements[chipId].Humidity;
+            });
+        });
+        chart.update();
+    }
+
+    function initializeSoilMoisGauge(chipId) {
+
+        var config = {
+            type: 'radialGauge',
+            data: {
+                labels: ['Toprak Nem'],
+                datasets: [
+                  {
+                      data: [0],
+                      backgroundColor: ["rgb(54, 162, 235)"],
+                      label: '%',
+                      borderWidth: 0
+                  }
+                ]
+            },
+            options: {
+                responsive: true,
+                legend: {},
+                title: {
+                    display: true,
+                    text: 'Toprak Nemi'
+                },
+
+                centerArea: {
+                    fontColor: '#fff',
+                    backgroundColor: 'rgba(0,0,0,0.6)'
+                },
+                domain: [0, 1023]
+            }
+        };
+
+        var ctx = document.getElementById('soilMoisChartGauge-' + chipId).getContext('2d');
+        gauges[chipId].SoilMois = new Object();
+        gauges[chipId].SoilMois = new Chart(ctx, config);
+    }
+
+    function updateSoilMoisGauge(chipId) {
+        var chart = gauges[chipId].SoilMois;
+        chart.data.datasets.forEach((dataset) => {
+            dataset.data = dataset.data.map(function () {
+                return lastMeasurements[chipId].Moisture;
+            });
+        });
+        chart.update();
+    }
+
+    
+
+    function toggleRelay(checkbox) {
+        var toggledChipId = checkbox[0].id.split('-')[1];
+        var status = checkbox[0].checked;
+        if (findDeviceWithChipId(toggledChipId).RelayState==status) {
+            return;
+        }
+        console.log("toggled", toggledChipId, "status", status);
+        setRelayState(toggledChipId, status);
+        if ($("#toggleStatus-" + toggledChipId).hasClass("btn-success")) {
+            $("#toggleStatus-" + toggledChipId).removeClass("btn-success");
+            $("#toggleStatus-" + toggledChipId).addClass("btn-info");
+            $("#toggleStatus-" + toggledChipId).empty();
+            $("#toggleStatus-" + toggledChipId).append('<i class="fas fa-sync-alt fa-spin"></i>');
+            checkbox[0].disabled = true;
+        }
+    }//TODO
+
+    function updateRelayStatus(relayChipId) {
+        console.log("updateRelayStatus içinde");
+        var updatedRelay;
+        $.ajax({
+            type: "GET",
+            url: '/Devices/GetDeviceWithChipId',
+            data: { "chipId": relayChipId },
+            dataType: "json",
+            contentType: "application/json; charset=utf-8",
+            async: false,
+            success: function (result) {
+                if ($("#toggle-" + relayChipId)[0].checked != result.RelayState && $("#toggleStatus-" + relayChipId).hasClass("btn-info")) {
+                    return;
+                }
+                if ($("#toggle-" + relayChipId)[0].checked == result.RelayState && $("#toggleStatus-" + relayChipId).hasClass("btn-info")) {
+                    $("#toggleStatus-" + relayChipId).removeClass("btn-info");
+                    $("#toggleStatus-" + relayChipId).addClass("btn-success");
+                    $("#toggleStatus-" + relayChipId).empty();
+                    $("#toggleStatus-" + relayChipId).append('<i class="fas fa-check"></i>');
+                }
+                findDeviceWithChipId(relayChipId).RelayState = result.RelayState;
+                $('#toggle-' + relayChipId).prop('checked', result.RelayState).change();
+                $("#toggle-" + relayChipId)[0].disabled = false;
+            }
+        });
+    }
+
+    function updateDataAndGauges() {
+        setInterval(function () {
+            console.log("Veriler yenilendi");
+            for (var i = 0; i < devices.length; i++) {
+                if (devices[i].Type.TempSensor) {
+                    getLastMeasurement(devices[i].ChipId);
+                    updateTempGauge(devices[i].ChipId);
+                    updateTempMoisGauge(devices[i].ChipId);
+                }
+                if (devices[i].Type.MoisSensor) {
+                    getLastMeasurement(devices[i].ChipId);
+                    updateSoilMoisGauge(devices[i].ChipId);
+                }
+                if (devices[i].Type.Relay) {
+                    updateRelayStatus(devices[i].ChipId);
+                }
+            }
+        }, 2000);
+    }
+</script>

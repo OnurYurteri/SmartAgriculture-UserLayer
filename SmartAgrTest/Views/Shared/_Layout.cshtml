@@ -156,6 +156,26 @@
                 </li>
             }
 
+            <!-- Nav Item - Geçmiş Ölçümler -->
+            @if (ViewBag.Title == "Geçmiş Ölçümler")
+            {
+                <li class="nav-item active">
+                    <a class="nav-link" href="/Measurements">
+                        <i class="fas fa-fw fa-chart-area"></i>
+                        <span>Geçmiş Ölçümler</span>
+                    </a>
+                </li>
+            }
+            else
+            {
+                <li class="nav-item">
+                    <a class="nav-link" href="/Measurements">
+                        <i class="fas fa-fw fa-chart-area"></i>
+                        <span>Geçmiş Ölçümler</span>
+                    </a>
+                </li>
+            }
+
             <!-- Nav Item - Login -->
             <li class="nav-item">
                 <a class="nav-link" href="/Login">
@@ -344,7 +364,7 @@
                     <h1 class="h3 mb-1 text-gray-800">@ViewBag.Title</h1>
                     @if (ViewBag.Description != null)
                     {
-                        <p class="mb-4">@ViewBag.Description</p>
+                        <p class="mb-4">@Html.Raw(ViewBag.Description)</p>
                     }
                     @RenderBody()
                 </div>

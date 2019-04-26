@@ -1,0 +1,457 @@
+﻿<div class="card shadow mb-4">
+    <div class="card-header py-3 d-sm-flex align-items-center justify-content-between">
+        <h6 class="m-0 font-weight-bold text-primary">Program Listesi</h6>
+        <button onclick="initializeNewModal()" class="btn btn-success btn-icon-split btn-sm">
+            <span class="icon text-white-50">
+                <i class="fas fa-plus"></i>
+            </span>
+            <span class="text">Program Ekle</span>
+        </button>
+
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Program Kodu</th>
+                        <th>Eylem Cihazı</th>
+                        <th>Açıklama</th>
+                        <th>Tekrar Et?</th>
+                        <th>Eylem Başlangıç</th>
+                        <th>Eylem Sonu</th>
+                        <th>Aktif</th>
+                    </tr>
+                </thead>
+                <tbody id="dataTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="scheduleModal" tabindex="-1" role="dialog" aria-labelledby="scheduleModal" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header shadow">
+                <h5 class="modal-title" id="scheduleModalLabel"></h5>
+                <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="card shadow mb-4">
+                    <div class="card-header">
+                        <h6 class="m-0 font-weight-bold text-primary">Program Detayları</h6>
+                    </div>
+                    <div class="card-body">
+                        <label>Program Kodu</label>
+                        <div class="form-group">
+                            <input class="form-control form-control-user" id="scheduleId" placeholder="#" disabled>
+                        </div>
+                        <label>Açıklama</label>
+                        <div class="form-group">
+                            <input class="form-control form-control-user" id="scheduleDescription" placeholder="Açıklama girin..">
+                        </div>
+                        <label>Eylem Cihazı</label>
+                        <div class="dropdown mb-4">
+                            <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                Dropdown
+                            </button>
+                            <div class="dropdown-menu scrollable-menu animated--fade-in" id="appendRelaysHere" aria-labelledby="dropdownMenuButton">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div class="custom-control custom-checkbox" id="checkDiv">
+                                <input type="checkbox" class="custom-control-input" id="doesRepeat">
+                                <label class="custom-control-label" for="customCheck">Tekrar Et?</label>
+                            </div>
+                        </div>
+                        <div id="appendedDateTime" class="text-center">
+                            
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-dismiss="modal">Kapat</button>
+                <button class="btn btn-primary" onclick="updateSchedule()" id="saveButton">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    var schedules;
+    var relayDevices;
+    var selectedSchedule;
+    $(document).ready(function () {
+        dt = $('#dataTable').DataTable(/*{
+            "columnDefs": [
+              { "visible": false, "targets": 0 }
+            ]
+        }*/);
+        getSchedules();
+        getRelayDevices();
+    });
+
+    $('#dataTable tbody').on('mouseenter', 'tr ', function () {
+        $(this).addClass('bg-gray-100 pointer');
+    });
+
+    $('#dataTable tbody').on('mouseleave', 'tr ', function () {
+        $(this).removeClass('bg-gray-100 pointer');
+    });
+
+    $('#dataTable tbody').on('click', 'tr', function () {
+        initializeScheduleModal($(this)[0].cells[0].textContent);
+    });
+
+    $("#checkDiv").click(repeatCheck);
+
+    $('#appendedDateTime div').click(function () {
+        console.log($(this).attr('id'));
+    });
+
+    function getSchedules() {
+        
+        $.ajax({
+            type: "POST",
+            url: '/Schedules/GetSchedules',
+            contentType: "application/json; charset=utf-8",
+            success: function (result) {
+                schedules = result;
+                refreshSchedulesTable();
+            }
+        });
+    }
+
+    function refreshSchedulesTable() {
+        var dt = $('#dataTable').DataTable();
+        dt.clear();
+        if (schedules != null) {
+            for (var i = 0; i < schedules.length; i++) {
+                var sens = "";
+                if (schedules[i].Repeatable) {
+                    var days = "";
+                    (schedules[i].OccurOn.Monday) ? days += "/Pzt" : "";
+                    (schedules[i].OccurOn.Tuesday) ? days += "/Sal" : "";
+                    (schedules[i].OccurOn.Wednesday) ? days += "/Çar" : "";
+                    (schedules[i].OccurOn.Thursday) ? days += "/Prş" : "";
+                    (schedules[i].OccurOn.Friday) ? days += "/Cum" : "";
+                    (schedules[i].OccurOn.Saturday) ? days += "/Cmt" : "";
+                    (schedules[i].OccurOn.Sunday) ? days += "/Paz" : "";
+                    //tekrar eden günler için sadece saat yazdır
+                    var fromEpoch = parseInt(schedules[i].From.slice(6, -2));
+                    var toEpoch = parseInt(schedules[i].To.slice(6, -2));
+                    //new Date(parseInt(schedules[0].From.slice(6,-2))).toLocaleTimeString()
+                    var dtData = [schedules[i].Id, schedules[i].ChipId, schedules[i].Description, days, new Date(fromEpoch).toLocaleTimeString(), new Date(toEpoch).toLocaleTimeString()];
+                    (schedules[i].Active) ? dtData.push('<span href="#" class="btn btn-success btn-circle btn-sm"> <i class="fas fa-play"></i> </span>') : dtData.push('<span href="#" class="btn btn-warning btn-circle btn-sm"> <i class="fas fa-pause"></i> </span>');
+                    dt.row.add(dtData).draw(false);
+                    
+                }
+                else {
+                    //diğer günlerde tam tarih
+                    var fromEpoch = parseInt(schedules[i].From.slice(6, -2));
+                    var toEpoch = parseInt(schedules[i].To.slice(6, -2));
+                    var dtData = [schedules[i].Id, schedules[i].ChipId, schedules[i].Description, "–", new Date(fromEpoch).toLocaleString(), new Date(toEpoch).toLocaleString()];
+                    (schedules[i].Active) ? dtData.push('<span href="#" class="btn btn-success btn-circle btn-sm"> <i class="fas fa-play"></i> </span>') : dtData.push('<span href="#" class="btn btn-warning btn-circle btn-sm"> <i class="fas fa-pause"></i> </span>');
+                    dt.row.add(dtData).draw(false);
+                }
+                
+            }
+        }
+    }
+
+    function initializeScheduleModal(_id) {
+        emptyModal();
+        selectedSchedule = cloneObj(getScheduleById(_id));
+        $("#scheduleModalLabel").append("#" + selectedSchedule.ChipId + " − " + selectedSchedule.Description);
+        $("#scheduleId").val(selectedSchedule.Id);
+        $("#scheduleDescription").val(selectedSchedule.Description);
+        var selectedRelay = getRelayById(selectedSchedule.ChipId);
+        $("#dropdownMenuButton").append(selectedRelay.ChipId + " − " + selectedRelay.Alias);
+        for (var i = 0; i < relayDevices.length; i++) {
+            $("#appendRelaysHere").append('<button class="dropdown-item" onclick="selectNewRelay($(this))" id="'+relayDevices[i].ChipId+'">' + relayDevices[i].ChipId + ' − ' + relayDevices[i].Alias + '</button>');
+        }
+        (selectedSchedule.Repeatable) ? $("#doesRepeat").attr('checked', true) : $("#doesRepeat").attr('checked', false);
+        (selectedSchedule.Repeatable) ? appendRepeated(selectedSchedule) : appendNonRepeated(selectedSchedule);
+        $("#scheduleModal").modal('show');
+    }
+
+    function getScheduleById(_id) {
+        if (schedules!=null) {
+            for (var i = 0; i < schedules.length; i++) {
+                if (schedules[i].Id === _id) {
+                    return schedules[i];
+                }
+            }
+        }
+    }
+
+    function getRelayDevices() {
+        $.ajax({
+            type: "POST",
+            url: '/Devices/GetRelays',
+            contentType: "application/json; charset=utf-8",
+            success: function (result) {
+                relayDevices = result;
+            }
+        });
+    }
+
+    function getRelayById(_id) {
+        if (relayDevices!=null) {
+            for (var i = 0; i < relayDevices.length; i++) {
+                if (relayDevices[i].ChipId===_id) {
+                    return relayDevices[i];
+                }
+            }
+        }
+    }
+
+    function emptyModal() {
+        $("#scheduleModalLabel").empty();
+        $("#scheduleId").val("");
+        $("#scheduleDescription").val("");
+        $("#dropdownMenuButton").empty();
+        $("#appendRelaysHere").empty();
+        $("#appendedDateTime").empty();
+    }
+
+    function selectNewRelay(btn) {
+        var selectedRelay = getRelayById(btn[0].id);
+        console.log("yeni eylem cihazı:" + selectedRelay.ChipId);
+        selectedSchedule.ChipId = selectedRelay.ChipId;
+        $("#dropdownMenuButton").empty();
+        $("#dropdownMenuButton").append(selectedRelay.ChipId + " − " + selectedRelay.Alias);
+    }
+
+    function repeatCheck() {
+        var checkState = $("#doesRepeat").is(":checked");
+        selectedSchedule.Repeatable = !selectedSchedule.Repeatable;
+        $("#doesRepeat").attr('checked', !checkState);
+        $("#appendedDateTime").empty();
+        if (selectedSchedule.Id!=null) {
+            var orjSch = getScheduleById(selectedSchedule.Id);
+            selectedSchedule.From = orjSch.From;
+            selectedSchedule.To = orjSch.To;
+        }
+        if (!selectedSchedule.Repeatable) {
+            selectedSchedule.OccurOn.Monday = false;
+            selectedSchedule.OccurOn.Tuesday = false;
+            selectedSchedule.OccurOn.Wednesday = false;
+            selectedSchedule.OccurOn.Thursday = false;
+            selectedSchedule.OccurOn.Friday = false;
+            selectedSchedule.OccurOn.Saturday = false;
+            selectedSchedule.OccurOn.Sunday = false;
+        }
+        (selectedSchedule.Repeatable) ? appendRepeated(selectedSchedule) : appendNonRepeated(selectedSchedule);
+    }
+
+    function appendRepeated(selectedSchedule) {
+        (selectedSchedule.OccurOn.Monday) ? $("#appendedDateTime").append('<div class="btn btn-success btn-circle btn-lg" id="weekMonday" onclick="weekDaysClicked($(this), false)">Pzt</div>') : $("#appendedDateTime").append('<div class="btn btn-warning btn-circle btn-lg" id="weekMonday" onclick="weekDaysClicked($(this), true)">Pzt</div>');
+        (selectedSchedule.OccurOn.Tuesday) ? $("#appendedDateTime").append('<div class="btn btn-success btn-circle btn-lg" id="weekTuesday" onclick="weekDaysClicked($(this), false)">Sal</div>') : $("#appendedDateTime").append('<div class="btn btn-warning btn-circle btn-lg" id="weekTuesday" onclick="weekDaysClicked($(this), true)">Sal</div>');
+        (selectedSchedule.OccurOn.Wednesday) ? $("#appendedDateTime").append('<div class="btn btn-success btn-circle btn-lg" id="weekWednesday" onclick="weekDaysClicked($(this), false)">Çar</div>') : $("#appendedDateTime").append('<div class="btn btn-warning btn-circle btn-lg" id="weekWednesday" onclick="weekDaysClicked($(this), true)">Çar</div>');
+        (selectedSchedule.OccurOn.Thursday) ? $("#appendedDateTime").append('<div class="btn btn-success btn-circle btn-lg" id="weekThursday" onclick="weekDaysClicked($(this), false)">Perş</div>') : $("#appendedDateTime").append('<div class="btn btn-warning btn-circle btn-lg" id="weekThursday" onclick="weekDaysClicked($(this), true)">Perş</div>');
+        (selectedSchedule.OccurOn.Friday) ? $("#appendedDateTime").append('<div class="btn btn-success btn-circle btn-lg" id="weekFriday" onclick="weekDaysClicked($(this), false)">Cum</div>') : $("#appendedDateTime").append('<div class="btn btn-warning btn-circle btn-lg" id="weekFriday" onclick="weekDaysClicked($(this), true)">Cum</div>');
+        (selectedSchedule.OccurOn.Saturday) ? $("#appendedDateTime").append('<div class="btn btn-success btn-circle btn-lg" id="weekSaturday" onclick="weekDaysClicked($(this), false)">Cmt</div>') : $("#appendedDateTime").append('<div class="btn btn-warning btn-circle btn-lg" id="weekSaturday" onclick="weekDaysClicked($(this), true)">Cmt</div>');
+        (selectedSchedule.OccurOn.Sunday) ? $("#appendedDateTime").append('<div class="btn btn-success btn-circle btn-lg" id="weekSunday" onclick="weekDaysClicked($(this), false)">Paz</div>') : $("#appendedDateTime").append('<div class="btn btn-warning btn-circle btn-lg" id="weekSunday" onclick="weekDaysClicked($(this), true)">Paz</div>');
+
+        $("#appendedDateTime").append('<div class="row d-sm-flex align-items-center justify-content-between"><div class="col-md-5" id="dateTimePickerFrom"></div>' +
+                                     '<div class="col-md-2 text-center"><b>−</b></div>' +
+                                     '<div class="col-md-5" id="dateTimePickerTo"></div></div>');
+        if (selectedSchedule.From==null && selectedSchedule.To==null) {
+            selectedSchedule.From = moment(moment().locale('tr').format('LT'), "HH:mm").locale('tr');
+            selectedSchedule.To = moment(moment().locale('tr').format('LT'), "HH:mm").locale('tr');
+        }
+        else if (!moment.isMoment(selectedSchedule.From) && !moment.isMoment(selectedSchedule.To)) {
+            selectedSchedule.From = moment(moment(parseInt(selectedSchedule.From.slice(6, -2))).locale('tr').format('LT'), "HH:mm").locale('tr');
+            selectedSchedule.To = moment(moment(parseInt(selectedSchedule.To.slice(6, -2))).locale('tr').format('LT'), "HH:mm").locale('tr');
+        }
+        $('#dateTimePickerFrom').datetimepicker({
+            defaultDate: selectedSchedule.From,
+            maxDate: selectedSchedule.To,
+            format: 'LT',
+            locale: 'tr',
+            inline: true
+        });
+        console.log("from: ", selectedSchedule.From);
+        console.log("to: ", selectedSchedule.To);
+        $('#dateTimePickerTo').datetimepicker({
+            defaultDate: selectedSchedule.To,
+            minDate: selectedSchedule.From,
+            maxDate: moment('23:59', 'HH:mm'),
+            format: 'LT',
+            locale: 'tr',
+            inline: true
+        });
+        $("#dateTimePickerFrom").on("change.datetimepicker", function (e) {
+            $('#dateTimePickerTo').datetimepicker('minDate', e.date);
+            selectedSchedule.From = $("#dateTimePickerFrom").datetimepicker('viewDate').toISOString();
+            //selectedSchedule.From = "/Date(" + $("#dateTimePickerFrom").datetimepicker('viewDate').valueOf() + ")/";
+        });
+        $("#dateTimePickerTo").on("change.datetimepicker", function (e) {
+            $('#dateTimePickerFrom').datetimepicker('maxDate', e.date);
+            selectedSchedule.To = $("#dateTimePickerTo").datetimepicker('viewDate').toISOString();
+            //selectedSchedule.To = "/Date(" + $("#dateTimePickerTo").datetimepicker('viewDate').valueOf() + ")/";
+        });
+    }
+
+    function appendNonRepeated(selectedSchedule) {
+        $("#appendedDateTime").append('<div class="row d-sm-flex align-items-center justify-content-between"><div class="col-md-6" id="dateTimePickerFrom"></div>' +
+                                     '<div class="col-md-6" id="dateTimePickerTo"></div></div>');
+        if (selectedSchedule.From == null & selectedSchedule.To == null) {
+            selectedSchedule.From = moment().locale('tr');
+            selectedSchedule.To = moment().locale('tr');
+        }
+        else if (!moment.isMoment(selectedSchedule.From) && !moment.isMoment(selectedSchedule.To)) {
+            selectedSchedule.From = moment(parseInt(selectedSchedule.From.slice(6, -2))).locale('tr');
+            selectedSchedule.To = moment(parseInt(selectedSchedule.To.slice(6, -2))).locale('tr');
+        }
+
+        $('#dateTimePickerFrom').datetimepicker({
+            defaultDate: selectedSchedule.From,
+            locale: 'tr',
+            inline: true,
+            icons: {
+                time: 'fas fa-clock'
+            }
+        });
+        console.log("from: ", selectedSchedule.From);
+        console.log("to: ", selectedSchedule.To);
+        $('#dateTimePickerTo').datetimepicker({
+            defaultDate: selectedSchedule.To,
+            minDate: selectedSchedule.From,
+            locale: 'tr',
+            inline: true,
+            icons: {
+                time: 'fas fa-clock'
+            }
+        });
+        $("#dateTimePickerFrom").on("change.datetimepicker", function (e) {
+            $('#dateTimePickerTo').datetimepicker('minDate', e.date);
+            selectedSchedule.From = $("#dateTimePickerFrom").datetimepicker('viewDate').toISOString();
+            //selectedSchedule.From = "/Date(" + $("#dateTimePickerFrom").datetimepicker('viewDate').valueOf() +")/";
+        });
+        $("#dateTimePickerTo").on("change.datetimepicker", function (e) {
+            selectedSchedule.To = $("#dateTimePickerTo").datetimepicker('viewDate').toISOString();
+            //selectedSchedule.To = "/Date(" + $("#dateTimePickerTo").datetimepicker('viewDate').valueOf() + ")/";
+        });
+    }
+
+    function weekDaysClicked(clickedDay, state) {
+        console.log(clickedDay.attr('id'), state);
+        if (clickedDay.attr('id')==="weekMonday") {
+            selectedSchedule.OccurOn.Monday = state;
+        }
+        else if (clickedDay.attr('id') === "weekTuesday") {
+            selectedSchedule.OccurOn.Tuesday = state;
+        }
+        else if (clickedDay.attr('id') === "weekWednesday") {
+            selectedSchedule.OccurOn.Wednesday = state;
+        }
+        else if (clickedDay.attr('id') === "weekThursday") {
+            selectedSchedule.OccurOn.Thursday = state;
+        }
+        else if (clickedDay.attr('id') === "weekFriday") {
+            selectedSchedule.OccurOn.Friday = state;
+        }
+        else if (clickedDay.attr('id') === "weekSaturday") {
+            selectedSchedule.OccurOn.Saturday = state;
+        }
+        else if (clickedDay.attr('id') === "weekSunday") {
+            selectedSchedule.OccurOn.Sunday = state;
+        }
+        $("#appendedDateTime").empty();
+        if (selectedSchedule.Id!=null) {
+            var orjSch = getScheduleById(selectedSchedule.Id);
+            selectedSchedule.From = orjSch.From;
+            selectedSchedule.To = orjSch.To;
+        }
+        appendRepeated(selectedSchedule);
+    }
+
+    function updateSchedule() {
+        if (typeof selectedSchedule.Id === "undefined") {
+            insertSchedule();
+            return;
+        }
+        console.log("yeni program girmemesi gereken yerde");
+        if (!moment.isMoment(selectedSchedule.From)) {
+            selectedSchedule.From = moment(selectedSchedule.From).toISOString();
+        }
+        if (!moment.isMoment(selectedSchedule.To)) {
+            selectedSchedule.To = moment(selectedSchedule.To).toISOString();
+        }
+        selectedSchedule.Description = $("#scheduleDescription").val();
+        $.ajax({
+            type: "POST",
+            url: '/Schedules/UpdateSchedule',
+            contentType: "application/json; charset=utf-8",
+            data: JSON.stringify(selectedSchedule),
+            dataType: "json",
+            success: function (result) {
+                console.log(result);
+                if (result.success) {
+                    getSchedules();
+                    $("#scheduleModal").modal('hide');
+                }
+                else {
+                    alert("Başarısız!");
+                }
+            }
+        });
+    }
+
+    function initializeNewModal() {
+        emptyModal();
+        selectedSchedule = new Object();
+        $("#scheduleModalLabel").append("Yeni Program Ekle");
+        for (var i = 0; i < relayDevices.length; i++) {
+            $("#appendRelaysHere").append('<button class="dropdown-item" onclick="selectNewRelay($(this))" id="' + relayDevices[i].ChipId + '">' + relayDevices[i].ChipId + ' − ' + relayDevices[i].Alias + '</button>');
+        }
+        selectedSchedule.Repeatable = false;
+        selectedSchedule.OccurOn = {};
+        selectedSchedule.OccurOn.Monday = false;
+        selectedSchedule.OccurOn.Tuesday = false;
+        selectedSchedule.OccurOn.Wednesday = false;
+        selectedSchedule.OccurOn.Thursday = false;
+        selectedSchedule.OccurOn.Friday = false;
+        selectedSchedule.OccurOn.Saturday = false;
+        selectedSchedule.OccurOn.Sunday = false;
+        (selectedSchedule.Repeatable) ? $("#doesRepeat").attr('checked', true) : $("#doesRepeat").attr('checked', false);
+        (selectedSchedule.Repeatable) ? appendRepeated(selectedSchedule) : appendNonRepeated(selectedSchedule);
+        $("#scheduleModal").modal('show');
+    }
+
+    function insertSchedule() {
+        selectedSchedule.Active = true;
+        if (typeof selectedSchedule.ChipId === "undefined") {
+            alert('Eylem Cihazı seçmelisiniz!');
+            return;
+        }
+        selectedSchedule.Description = $("#scheduleDescription").val();
+        selectedSchedule.From = moment(selectedSchedule.From).toISOString();
+        selectedSchedule.To = moment(selectedSchedule.To).toISOString();
+        $.ajax({
+            type: "POST",
+            url: '/Schedules/InsertSchedule',
+            contentType: "application/json; charset=utf-8",
+            data: JSON.stringify(selectedSchedule),
+            dataType: "json",
+            success: function (result) {
+                console.log(result);
+                if (result.success) {
+                    getSchedules();
+                    $("#scheduleModal").modal('hide');
+                }
+                else {
+                    alert("Başarısız!");
+                }
+            }
+        });
+    }
+    function cloneObj(obj) {
+        return JSON.parse(JSON.stringify(obj));
+    }
+</script>

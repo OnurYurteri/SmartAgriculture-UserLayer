@@ -14,7 +14,26 @@ namespace SmartAgrTest.Controllers
         // GET: Measurement
         public ActionResult Index()
         {
-            return View();
+            if (Session["USER"] != null && Request.Cookies["AUTHID"] != null && Request.Cookies["AUTHID"].Value == Session["AUTHID"].ToString())
+            {
+                ViewBag.Title = "Geçmiş Ölçümler";
+                ViewBag.Description = "<i class=\"fas fa-plus - circle\"></i> 'ya tıklayarak Ölçüm Görüntüleme Ekranı Oluştabilirsiniz.";
+                ViewBag.Username = Session["USER"];
+                return View();
+            }
+            //sahtecilik olmasına karşın
+            if (Session["USER"] != null)
+            {
+                Session.Remove("USER");
+            }
+            if (Request.Cookies["AUTHID"] != null)
+            {
+                var authCookie = new HttpCookie("AUTHID");
+                authCookie.Expires = DateTime.Now.AddDays(-1d);
+                Response.Cookies.Add(authCookie);
+            }
+
+            return RedirectToAction("Index", "Login");
         }
 
         public JsonResult getLastMeasurement(string chipId)

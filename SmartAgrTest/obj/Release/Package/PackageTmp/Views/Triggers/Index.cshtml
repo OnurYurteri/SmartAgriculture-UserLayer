@@ -1,0 +1,434 @@
+﻿<div class="card shadow mb-4">
+    <div class="card-header py-3 d-sm-flex align-items-center justify-content-between">
+        <h6 class="m-0 font-weight-bold text-primary">Tetik Eylem Listesi</h6>
+        <button onclick="initializeNewModal()" class="btn btn-success btn-icon-split btn-sm">
+            <span class="icon text-white-50">
+                <i class="fas fa-plus"></i>
+            </span>
+            <span class="text">Tetik Eylem Ekle</span>
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Tetik Kodu</th>
+                        <th>Açıklama</th>
+                        <th>Kaynak Cihaz</th>
+                        <th>Veri Tipi</th>
+                        <th>Minimum</th>
+                        <th>Maksimum</th>
+                        <th>Eylem Cihazı</th>
+                        <th>Kural Mı?</th>
+                        <th>Aktif</th>
+                    </tr>
+                </thead>
+                <tbody id="dataTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="triggerModal" tabindex="-1" role="dialog" aria-labelledby="deviceModal" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header shadow">
+                <h5 class="modal-title" id="triggerModalLabel">CİHAZ ADI</h5>
+                <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="card shadow mb-4">
+                    <div class="card-header">
+                        <h6 class="m-0 font-weight-bold text-primary">Eylem Detayları</h6>
+                    </div>
+                    <div class="card-body">
+                        <label>Tetik Kodu</label>
+                        <div class="form-group">
+                            <input class="form-control form-control-user" id="labelTriggerId" placeholder="#" disabled>
+                        </div>
+                        <label>Açıklama</label>
+                        <div class="form-group">
+                            <input class="form-control form-control-user" id="triggerDescription" placeholder="Açıklama girin..">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-7">
+                                <label>Kaynak Cihaz</label>
+                                <div class="dropdown mb-4">
+                                    <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownSourceButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        Dropdown
+                                    </button>
+                                    <div class="dropdown-menu scrollable-menu animated--fade-in" id="appendSensorsHere" aria-labelledby="dropdownSourceButton">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <label>Veri Tipi</label>
+                                <div class="dropdown mb-4">
+                                    <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownSourceTypeButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        Dropdown
+                                    </button>
+                                    <div class="dropdown-menu scrollable-menu animated--fade-in" id="appendSourceTypesHere" aria-labelledby="dropdownSourceTypeButton">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <label>Eylem Cihazı</label>
+                        <div class="dropdown mb-4">
+                            <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownActionButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                Dropdown
+                            </button>
+                            <div class="dropdown-menu scrollable-menu animated--fade-in" id="appendRelaysHere" aria-labelledby="dropdownActionButton">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label>Minimum</label>
+                                <div class="form-group">
+                                    <input class="form-control form-control-user" id="labelMin" placeholder="Minimum Değer..">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label>Maksimum</label>
+                                <div class="form-group">
+                                    <input class="form-control form-control-user" id="labelMax" placeholder="Maksimum Değer..">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <span class="d-inline-block" tabindex="0" data-toggle="tooltip" data-placement="right" title="Varolan programların verilen minimum ve maksimum değerlerin dışında çalışmasını engeller.">
+                                <div class="custom-control custom-checkbox" id="checkDiv">
+                                    <input type="checkbox" class="custom-control-input" id="isRule">
+                                    <label class="custom-control-label" for="customCheck">Kural Mı?</label>
+                                </div>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-dismiss="modal">Kapat</button>
+                <button class="btn btn-primary" onclick="updateTrigger()" id="saveButton">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var triggers;
+    var devices;
+    var selectedTrigger;
+    var relayDevices;
+
+    String.prototype.trunc = String.prototype.trunc ||
+      function (n) {
+          return (this.length > n) ? this.substr(0, n - 1) + '...' : this;
+      };
+
+    $(document).ready(function () {
+        dt = $('#dataTable').DataTable();
+        getDevices();
+        getRelays();
+        getTriggers();
+    });
+
+    $('#dataTable tbody').on('mouseenter', 'tr ', function () {
+        $(this).addClass('bg-gray-100 pointer');
+    });
+
+    $('#dataTable tbody').on('mouseleave', 'tr ', function () {
+        $(this).removeClass('bg-gray-100 pointer');
+    });
+
+    $('#dataTable tbody').on('click', 'tr', function () {
+        initializeTriggerModal($(this)[0].cells[0].textContent);
+    });
+    $("#checkDiv").click(function () {
+        var checkState = $("#isRule").is(":checked");
+        $("#isRule").attr('checked', !checkState);
+        selectedTrigger.IsRule = !checkState;
+    });
+    $('[data-toggle="tooltip"]').tooltip();
+
+    function getTriggers() {
+        $.ajax({
+            type: "POST",
+            url: '/Triggers/GetTriggers',
+            contentType: "application/json; charset=utf-8",
+            success: function (result) {
+                triggers = result;
+                refreshTriggersTable();
+            }
+        });
+    }
+
+    function getDevices() {
+        $.ajax({
+            type: "POST",
+            url: '/Devices/GetDevices',
+            contentType: "application/json; charset=utf-8",
+            async: false,
+            success: function (result) {
+                devices = result;
+            }
+        });
+    }
+
+    function getRelays() {
+        $.ajax({
+            type: "POST",
+            url: '/Devices/GetRelays',
+            contentType: "application/json; charset=utf-8",
+            async: false,
+            success: function (result) {
+                relayDevices = result;
+            }
+        });
+    }
+
+    function findDeviceWithChipId(chipId) {
+        if (devices != null) {
+            for (var i = 0; i < devices.length; i++) {
+                if (devices[i].ChipId === chipId) {
+                    return devices[i];
+                }
+            }
+        }
+    }
+
+    function findTriggerWithId(id) {
+        if (triggers != null) {
+            for (var i = 0; i < triggers.length; i++) {
+                if (triggers[i].Id === id) {
+                    return triggers[i];
+                }
+            }
+        }
+    }
+
+    function refreshTriggersTable() {
+        var dt = $('#dataTable').DataTable();
+        dt.clear();
+        if (triggers != null) {
+            for (var i = 0; i < triggers.length; i++) {
+                //var sens = "";
+                //(devices[i].Type.TempSensor) ? sens += "/Sıcaklık" : sens += "";
+                //(devices[i].Type.MoisSensor) ? sens += "/Toprak Nem" : sens += "";
+                //(devices[i].Type.Relay) ? sens += "/Röle" : sens += "";
+                var sourceType = "";
+                (triggers[i].SourceType.Temperature) ? sourceType += "Sıcaklık" : sourceType += "";
+                (triggers[i].SourceType.Humidity) ? sourceType += "Nem" : sourceType += "";
+                (triggers[i].SourceType.Moisture) ? sourceType += "Toprak Nem" : sourceType += "";
+                var sourceDeviceStr = triggers[i].SourceChipId + " – " + findDeviceWithChipId(triggers[i].SourceChipId).Alias;
+                var actionDeviceStr = triggers[i].ActionChipId + " – " + findDeviceWithChipId(triggers[i].ActionChipId).Alias;
+                var ruleStr = "";
+                (triggers[i].IsRule) ? ruleStr += "Evet" : ruleStr += "Hayır";
+                var dtData = [triggers[i].Id, triggers[i].Description, sourceDeviceStr, sourceType, triggers[i].FromVal, triggers[i].ToVal, actionDeviceStr, ruleStr];
+                (triggers[i].Active) ? dtData.push('<span href="#" class="btn btn-success btn-circle btn-sm"> <i class="fas fa-play"></i> </span>') : dtData.push('<span href="#" class="btn btn-warning btn-circle btn-sm"> <i class="fas fa-pause"></i> </span>');
+                dt.row.add(dtData).draw(false);
+            }
+        }
+    }
+
+    function emptyModal() {
+        $("#triggerModalLabel").empty();
+        $("#labelTriggerId").val("");
+        $("#triggerDescription").val("");
+        $("#dropdownSourceButton").empty();
+        $("#appendSensorsHere").empty();
+        $("#dropdownSourceTypeButton").empty();
+        $("#appendSourceTypesHere").empty();
+        $("#dropdownActionButton").empty();
+        $("#appendRelaysHere").empty();
+        $("#labelMin").val("");
+        $("#labelMax").val("");
+    }
+
+    function initializeTriggerModal(id) {
+        emptyModal();
+        selectedTrigger = cloneObj(findTriggerWithId(id));
+        $("#triggerModalLabel").append("#" + selectedTrigger.ActionChipId + " − " + selectedTrigger.Description);
+        $("#labelTriggerId").val(selectedTrigger.Id);
+        $("#triggerDescription").val(selectedTrigger.Description);
+        var selectedSourceDevice = findDeviceWithChipId(selectedTrigger.SourceChipId);
+        $("#dropdownSourceButton").append((selectedSourceDevice.ChipId + " − " + selectedSourceDevice.Alias).trunc(21));
+        for (var i = 0; i < devices.length; i++) {
+            if (devices[i].Type.TempSensor || devices[i].Type.MoisSensor) {
+                $("#appendSensorsHere").append('<button class="dropdown-item" onclick="selectNewSensor($(this))" id="' + devices[i].ChipId + '">' + devices[i].ChipId + ' − ' + devices[i].Alias + '</button>');
+            }
+        }
+        var sourceTypeStr = "";
+        (selectedTrigger.SourceType.Temperature) ? sourceTypeStr += "Sıcaklık" : sourceTypeStr += "";
+        (selectedTrigger.SourceType.Humidity) ? sourceTypeStr += "Nem" : sourceTypeStr += "";
+        (selectedTrigger.SourceType.Moisture) ? sourceTypeStr += "Toprak Nem" : sourceTypeStr += "";
+        $("#dropdownSourceTypeButton").append(sourceTypeStr);
+        if (selectedSourceDevice.Type.TempSensor) {
+            $("#appendSourceTypesHere").append('<button class="dropdown-item" onclick="selectNewSourceType(0)" id="' + selectedSourceDevice.ChipId + '">Sıcaklık</button>');
+            $("#appendSourceTypesHere").append('<button class="dropdown-item" onclick="selectNewSourceType(1)" id="' + selectedSourceDevice.ChipId + '">Nem</button>');
+        }
+        if (selectedSourceDevice.Type.MoisSensor) {
+            $("#appendSourceTypesHere").append('<button class="dropdown-item" onclick="selectNewSourceType(2)" id="' + selectedSourceDevice.ChipId + '">Toprak Nem</button>');
+        }
+        var selectedRelayDevice = findDeviceWithChipId(selectedTrigger.ActionChipId);
+        $("#dropdownActionButton").append(selectedRelayDevice.ChipId + " − " + selectedRelayDevice.Alias);
+        for (var i = 0; i < relayDevices.length; i++) {
+            $("#appendRelaysHere").append('<button class="dropdown-item" onclick="selectNewRelay($(this))" id="' + relayDevices[i].ChipId + '">' + relayDevices[i].ChipId + ' − ' + relayDevices[i].Alias + '</button>');
+        }
+        $("#labelMin").val(selectedTrigger.FromVal);
+        $("#labelMax").val(selectedTrigger.ToVal);
+
+        $("#isRule").attr('checked', selectedTrigger.IsRule);
+
+        $("#triggerModal").modal('show');
+    }
+
+    function initializeNewModal() {
+        emptyModal();
+        selectedTrigger = new Object();
+        selectedTrigger.Active = true;
+        selectedTrigger.IsRule = false;
+        selectedTrigger.SourceType = { Temperature: false, Humidity: false, Moisture: false };
+        $("#triggerModalLabel").append("Yeni Tetik Eylem Ekle");
+
+        for (var i = 0; i < devices.length; i++) {
+            if (devices[i].Type.TempSensor || devices[i].Type.MoisSensor) {
+                $("#appendSensorsHere").append('<button class="dropdown-item" onclick="selectNewSensor($(this))" id="' + devices[i].ChipId + '">' + devices[i].ChipId + ' − ' + devices[i].Alias + '</button>');
+            }
+        }
+        for (var i = 0; i < relayDevices.length; i++) {
+            $("#appendRelaysHere").append('<button class="dropdown-item" onclick="selectNewRelay($(this))" id="' + relayDevices[i].ChipId + '">' + relayDevices[i].ChipId + ' − ' + relayDevices[i].Alias + '</button>');
+        }
+
+        $("#triggerModal").modal('show');
+    }
+
+    function selectNewSensor(btn) {
+        console.log("yeni sensor: " + btn[0].id);
+        selectedTrigger.SourceChipId = btn[0].id;
+        var selectedSourceDevice = findDeviceWithChipId(btn[0].id);
+        $("#dropdownSourceButton").empty();
+        $("#dropdownSourceButton").append((selectedSourceDevice.ChipId + " − " + selectedSourceDevice.Alias).trunc(21));
+        selectedTrigger.SourceType.Temperature = false;
+        selectedTrigger.SourceType.Humidity = false;
+        selectedTrigger.SourceType.Moisture = false;
+        $("#dropdownSourceTypeButton").empty();
+        $("#appendSourceTypesHere").empty();
+        if (selectedSourceDevice.Type.TempSensor) {
+            $("#appendSourceTypesHere").append('<button class="dropdown-item" onclick="selectNewSourceType(0)" id="' + selectedSourceDevice.ChipId + '">Sıcaklık</button>');
+            $("#appendSourceTypesHere").append('<button class="dropdown-item" onclick="selectNewSourceType(1)" id="' + selectedSourceDevice.ChipId + '">Nem</button>');
+        }
+        if (selectedSourceDevice.Type.MoisSensor) {
+            $("#appendSourceTypesHere").append('<button class="dropdown-item" onclick="selectNewSourceType(2)" id="' + selectedSourceDevice.ChipId + '">Toprak Nem</button>');
+        }
+    }
+
+    function selectNewSourceType(sourceTypeId) { //0: temperature, 1: humidity, 2:moisture
+        selectedTrigger.SourceType.Temperature = false;
+        selectedTrigger.SourceType.Humidity = false;
+        selectedTrigger.SourceType.Moisture = false;
+        var sourceTypeStr = ""
+        if (sourceTypeId == 0) {
+            sourceTypeStr += "Sıcaklık";
+            selectedTrigger.SourceType.Temperature = true;
+        }
+        else if (sourceTypeId == 1) {
+            sourceTypeStr += "Nem";
+            selectedTrigger.SourceType.Humidity = true;
+        }
+        else {
+            sourceTypeStr += "Toprak Nem";
+            selectedTrigger.SourceType.Moisture = true;
+        }
+        $("#dropdownSourceTypeButton").empty();
+        $("#dropdownSourceTypeButton").append(sourceTypeStr);
+    }
+
+    function selectNewRelay(btn) {
+        console.log("yeni relay: " + btn[0].id);
+        selectedTrigger.ActionChipId = btn[0].id;
+        var selectedRelayDevice = findDeviceWithChipId(btn[0].id);
+        $("#dropdownActionButton").empty();
+        $("#dropdownActionButton").append(selectedRelayDevice.ChipId + " − " + selectedRelayDevice.Alias);
+    }
+
+    function updateTrigger() {
+        if (typeof selectedTrigger.Id === "undefined") {
+            insertTrigger();
+            return;
+        }
+        selectedTrigger.Description = $("#triggerDescription").val();
+        
+        if (isNaN($("#labelMin").val())) {
+            alert("Minimum değer geçersiz.");
+            return;
+        }
+        if (isNaN($("#labelMax").val())) {
+            alert("Maksimum değer geçersiz.");
+            return;
+        }
+        if (selectedTrigger.SourceType.Temperature!=true && selectedTrigger.SourceType.Humidity!=true && selectedTrigger.SourceType.Moisture!=true) {
+            alert("Veri tipi seçmelisiniz.");
+            return;
+        }
+        selectedTrigger.FromVal = parseInt($("#labelMin").val());
+        selectedTrigger.ToVal = parseInt($("#labelMax").val());
+
+        $.ajax({
+            type: "POST",
+            url: '/Triggers/UpdateTrigger',
+            contentType: "application/json; charset=utf-8",
+            data: JSON.stringify(selectedTrigger),
+            dataType: "json",
+            success: function (result) {
+                console.log(result);
+                if (result.success) {
+                    getTriggers();
+                    $("#triggerModal").modal('hide');
+                }
+                else {
+                    alert("Başarısız!");
+                }
+            }
+        });
+    }
+
+    function insertTrigger() {
+        selectedTrigger.Description = $("#triggerDescription").val();
+        if (isNaN($("#labelMin").val())) {
+            alert("Minimum değer geçersiz.");
+            return;
+        }
+        if (isNaN($("#labelMax").val())) {
+            alert("Maksimum değer geçersiz.");
+            return;
+        }
+        if (selectedTrigger.SourceType.Temperature != true && selectedTrigger.SourceType.Humidity != true && selectedTrigger.SourceType.Moisture != true) {
+            alert("Veri tipi seçmelisiniz.");
+            return;
+        }
+        selectedTrigger.FromVal = parseInt($("#labelMin").val());
+        selectedTrigger.ToVal = parseInt($("#labelMax").val());
+
+        $.ajax({
+            type: "POST",
+            url: '/Triggers/InsertTrigger',
+            contentType: "application/json; charset=utf-8",
+            data: JSON.stringify(selectedTrigger),
+            dataType: "json",
+            success: function (result) {
+                console.log(result);
+                if (result.success) {
+                    getTriggers();
+                    $("#triggerModal").modal('hide');
+                }
+                else {
+                    alert("Başarısız!");
+                }
+            }
+        });
+    };
+
+    function cloneObj(obj) {
+        return JSON.parse(JSON.stringify(obj));
+    }
+</script>
