@@ -27,5 +27,12 @@ namespace SmartAgrTest.Models
                 .Limit(1)
                 .Sort("{_id: -1}").Single();
         }
+        
+        public List<MeasurementEntity> getMeasurementsBetweenDates(string chipId, DateTime from, DateTime to)
+        {
+            var filterBuilder = Builders<MeasurementEntity>.Filter;
+            var filter = filterBuilder.Gte(x => x.DateTime.Now, from) & filterBuilder.Lte(x => x.DateTime.Now, to);
+            return measurementCollection.Find(filter).ToList();
+        }
     }
 }

@@ -53,16 +53,73 @@
     };
 
     function initializeMeasurementCard(cardId) {
-        $("#card-" + cardId).append('<div class="row"><div class="col-md-4" style="display:table;"><label>Cihaz</label>' +
-                                    '<div class="dropdown mb-4">' +
-                                        '<button class="btn btn-primary dropdown-toggle" type="button" id="dropdownSelectedDevice-' + cardCount + '" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>' +
-                                        '<div class="dropdown-menu scrollable-menu animated--fade-in" id="dropdownDevices-' + cardCount + '" aria-labelledby="dropdownDevices-' + cardCount + '"></div>' +
-                                    '</div></div>' +
-                                    '<div class="col-md-4"><label>Veri Tipi</label>' +
-                                    '<div class="dropdown mb-4">' +
-                                        '<button class="btn btn-primary dropdown-toggle" type="button" id="dropdownSelectedType-' + cardCount + '" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>' +
-                                        '<div class="dropdown-menu scrollable-menu animated--fade-in" id="dropdownTypes-' + cardCount + '" aria-labelledby="dropdownMenuButton"></div>' +
-                                    '</div></div></div>');
+        $("#card-" + cardId).append('<div class="row">' +
+                                        '<div class="col-md-4" style="display:table;">' +
+                                            '<label>Cihaz</label>' +
+                                            '<div class="dropdown mb-4">' +
+                                                '<button class="btn btn-primary dropdown-toggle" type="button" id="dropdownSelectedDevice-' + cardCount + '" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>' +
+                                                '<div class="dropdown-menu scrollable-menu animated--fade-in" id="dropdownDevices-' + cardCount + '" aria-labelledby="dropdownDevices-' + cardCount + '"></div>' +
+                                            '</div>' +
+                                        '</div>' +
+                                        '<div class="col-md-4">'+
+                                            '<label>Veri Tipi</label>' +
+                                            '<div class="dropdown mb-4">' +
+                                                '<button class="btn btn-primary dropdown-toggle" type="button" id="dropdownSelectedType-' + cardCount + '" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>' +
+                                                '<div class="dropdown-menu scrollable-menu animated--fade-in" id="dropdownTypes-' + cardCount + '" aria-labelledby="dropdownMenuButton"></div>' +
+                                            '</div>' +
+                                        '</div>' +
+                                        '<div class="col-md-3">' +
+                                            '<label>Gruplandırma Ölçütü</label>' +
+                                            '<div class="dropdown mb-4">' +
+                                                '<button class="btn btn-primary dropdown-toggle" type="button" id="dropdownSelectedGroup-' + cardCount + '" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>' +
+                                                '<div class="dropdown-menu scrollable-menu animated--fade-in" id="dropdownGroups-' + cardCount + '" aria-labelledby="dropdownMenuButton">' +
+                                                    '<button class="dropdown-item" onclick="dropdownSelectGroup(0,' + cardCount + ')">Yok</button>' +
+                                                    '<button class="dropdown-item" onclick="dropdownSelectGroup(1,' + cardCount + ')">Saat</button>' +
+                                                    '<button class="dropdown-item" onclick="dropdownSelectGroup(2,' + cardCount + ')">Gün</button>' +
+                                                    '<button class="dropdown-item" onclick="dropdownSelectGroup(3,' + cardCount + ')">Hafta</button>' +
+                                                    '<button class="dropdown-item" onclick="dropdownSelectGroup(4,' + cardCount + ')">Ay</button>' +
+                                                    '<button class="dropdown-item" onclick="dropdownSelectGroup(5,' + cardCount + ')">Yıl</button>' +
+                                                '</div>' +
+                                            '</div>' +
+                                        '</div>' +
+                                    '</div>' +
+                                    '<div class="row">'+
+                                        '<div class="col-md-6">' +
+                                            '<label>Başlangıç Tarihi</label>' +
+                                            '<div class="form-group">'+
+                                                '<div class="input-group date" id="dateTimePickerFrom-'+cardId+'" data-target-input="nearest">' +
+                                                    '<input type="text" class="form-control datetimepicker-input" data-target="#dateTimePickerFrom-' + cardId + '"/>' +
+                                                    '<div class="input-group-append" data-target="#dateTimePickerFrom-' + cardId + '" data-toggle="datetimepicker">' +
+                                                        '<div class="input-group-text"><i class="fa fa-calendar"></i></div>' +
+                                                    '</div>'+
+                                                '</div>'+
+                                            '</div>'+
+                                        '</div>' +
+                                        '<div class="col-md-6">' +
+                                            '<label>Bitiş Tarihi</label>' +
+                                            '<div class="form-group">' +
+                                                '<div class="input-group date" id="dateTimePickerTo-' + cardId + '" data-target-input="nearest">' +
+                                                    '<input type="text" class="form-control datetimepicker-input" data-target="#dateTimePickerTo-' + cardId + '"/>' +
+                                                    '<div class="input-group-append" data-target="#dateTimePickerTo-' + cardId + '" data-toggle="datetimepicker">' +
+                                                        '<div class="input-group-text"><i class="fa fa-calendar"></i></div>' +
+                                                    '</div>' +
+                                                '</div>' +
+                                            '</div>' +
+                                        '</div>' +
+                                    '</div>' +
+                                    '<div class="row">'+
+                                        '<div class="col-md-12">' +
+                                            '<button class="btn btn-primary btn-icon-split w-100" onclick="initializeChart(' + cardId + ')">' +
+                                                '<span class="icon text-white-50" style="background:none;">'+
+                                                    '<i class="fas fa-paper-plane"></i>'+
+                                                '</span>'+
+                                                '<span class="text" style="padding-left:0px;">Getir</span>' +
+                                            '</button>'+
+                                        '</div>' +
+                                    '</div>'+
+                                    '<div class="row">' +
+                                        '<div class="col-md-12" id="chart-'+cardId+'">'+
+                                    '</div>');
         if (devices != null) {
             for (var i = 0; i < devices.length; i++) {
                 if (devices[i].Type.TempSensor || devices[i].Type.MoisSensor) {
@@ -70,6 +127,18 @@
                 }
             }
         }
+        $("#dateTimePickerFrom-" + cardId).datetimepicker({
+            locale: 'tr',
+            icons: {
+                time: "far fa-clock"
+            }
+        });
+        $("#dateTimePickerTo-" + cardId).datetimepicker({
+            locale: 'tr',
+            icons: {
+                time: "far fa-clock"
+            }
+        });
         console.log(cardId);
     };
 
@@ -103,4 +172,107 @@
         }
         
     };
+
+    function dropdownSelectGroup(groupId, cardId) {//0:Yok, 1:Saat, 2:Gün, 3:Hafta, 4:Ay, 5:Yıl
+        console.log(groupId, cardId);
+        $("#dropdownSelectedGroup-" + cardId).empty();
+        if (groupId == 0) {
+            $("#dropdownSelectedGroup-" + cardId).append("Yok");
+        }
+        else if (groupId == 1) {
+            $("#dropdownSelectedGroup-" + cardId).append("Saat");
+        }
+        else if (groupId == 2) {
+            $("#dropdownSelectedGroup-" + cardId).append("Gün");
+        }
+        else if (groupId == 3) {
+            $("#dropdownSelectedGroup-" + cardId).append("Hafta");
+        }
+        else if (groupId == 4) {
+            $("#dropdownSelectedGroup-" + cardId).append("Ay");
+        }
+        else if (groupId == 5) {
+            $("#dropdownSelectedGroup-" + cardId).append("Yıl");
+        }
+    };
+
+    function initializeChart(cardId) {
+        var deviceId = $("#dropdownSelectedDevice-" + cardId)[0].innerHTML.split('-')[0].trim();
+        var from = $("#dateTimePickerFrom-" + cardId).datetimepicker('viewDate').toISOString();
+        var to = $("#dateTimePickerTo-" + cardId).datetimepicker('viewDate').toISOString();
+        var groupType = $("#dropdownSelectedGroup-" + cardId)[0].innerHTML.trim();
+        var dataType = $("#dropdownSelectedType-1")[0].innerHTML.trim();
+        console.log(deviceId, from, to);
+        $.ajax({
+            type: "POST",
+            url: '/Measurements/GetMeasurementsBetweenDates',
+            contentType: "application/json; charset=utf-8",
+            data: '{ "chipId": "' + deviceId + '", "from":"' + from + '", "to":"' + to + '"}',
+            dataType: "json",
+            success: function (result) {
+                groupResults(result,cardId,groupType,dataType);
+            }
+        });
+    };
+
+    function groupResults(result, cardId, groupType, dataType) {
+        var dayGroups = _.groupBy(result, function (res) {
+            if (groupType === "Saat") {
+                return moment(res.DateTime.Now).startOf('hour').format();
+            }
+            else if (groupType === "Gün") {
+                return moment(res.DateTime.Now).startOf('day').format();
+            }
+            else if (groupType === "Hafta") {
+                return moment(res.DateTime.Now).startOf('isoWeek').format();
+            }
+            else if (groupType === "Ay") {
+                return moment(res.DateTime.Now).startOf('month').format();
+            }
+            else if (groupType === "Yıl") {
+                return moment(res.DateTime.Now).startOf('year').format();;
+            }
+        });
+        
+        var result = _.map(dayGroups, function (group, date) {
+            return {
+                date: date,
+                measurements: group
+            }
+        });
+        if (groupType!="Yok") {
+            if (dataType == "Sıcaklık") {
+                for (var i = 0; i < result.length; i++) {
+                    var sum = 0;
+                    for (var j = 0; j < result[i].measurements.length; j++) {
+                        sum += result[i].measurements[j].Temperature;
+                    }
+                    result[i].measurements = parseFloat((sum / result[i].measurements.length).toFixed(2));
+                }
+            }
+            else if (dataType == "Nem") {
+                for (var i = 0; i < result.length; i++) {
+                    var sum = 0;
+                    for (var j = 0; j < result[i].measurements.length; j++) {
+                        sum += result[i].measurements[j].Humidity;
+                    }
+                    result[i].measurements = parseFloat((sum / result[i].measurements.length).toFixed(2));
+                }
+            }
+            else if (dataType == "Toprak Nemi") {
+                for (var i = 0; i < result.length; i++) {
+                    var sum = 0;
+                    for (var j = 0; j < result[i].measurements.length; j++) {
+                        sum += result[i].measurements[j].Moisture;
+                    }
+                    result[i].measurements = parseFloat((sum / result[i].measurements.length).toFixed(2));
+                }
+            }
+        }
+        console.log(result);
+    };
+
+    function drawChart() {
+
+    }
 </script>

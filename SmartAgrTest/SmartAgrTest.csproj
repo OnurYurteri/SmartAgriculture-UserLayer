@@ -1735,6 +1735,7 @@
     <Content Include="Content\vendor\paho-mqtt.js" />
     <Content Include="Content\vendor\tempusdominus-bootstrap-4.min.css" />
     <Content Include="Content\vendor\tempusdominus-bootstrap-4.min.js" />
+    <Content Include="Content\vendor\underscore-min.js" />
     <Content Include="Global.asax" />
     <Content Include="Web.config">
       <SubType>Designer</SubType>

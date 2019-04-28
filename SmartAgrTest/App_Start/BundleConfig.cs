@@ -28,7 +28,8 @@ namespace SmartAgrTest
                 "~/Content/vendor/tempusdominus-bootstrap-4.min.js",
                 "~/Content/vendor/paho-mqtt.js",
                 "~/Content/vendor/chart.js/Chart.RadialGauge.umd.js",
-                "~/Content/vendor/bootstrap4-toggle/bootstrap4-toggle.min.js"));
+                "~/Content/vendor/bootstrap4-toggle/bootstrap4-toggle.min.js",
+                "~/Content/vendor/underscore-min.js"));
         }
     }
 }

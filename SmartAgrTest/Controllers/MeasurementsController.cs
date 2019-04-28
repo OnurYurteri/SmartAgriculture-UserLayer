@@ -39,6 +39,12 @@ namespace SmartAgrTest.Controllers
         public JsonResult getLastMeasurement(string chipId)
         {
             return Json(measurementModel.getLastDeviceMeasurement(chipId), JsonRequestBehavior.AllowGet);
+
+        }
+
+        public JsonResult GetMeasurementsBetweenDates(string chipId, DateTime from, DateTime to)
+        {
+            return Json(measurementModel.getMeasurementsBetweenDates(chipId,from,to), JsonRequestBehavior.AllowGet);
         }
     }
 }
