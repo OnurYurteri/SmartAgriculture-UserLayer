@@ -16,6 +16,7 @@
 <script type="text/javascript">
     var cardCount = 0;
     var devices;
+    var charts = [];
     $(document).ready(function () {
         getDevices();
     });
@@ -118,7 +119,9 @@
                                         '</div>' +
                                     '</div>'+
                                     '<div class="row">' +
-                                        '<div class="col-md-12" id="chart-'+cardId+'">'+
+                                        //'<div class="col-md-12">' +
+                                            '<canvas id="chart-' + cardId + '"></canvas>' +
+                                        //'</div>'+
                                     '</div>');
         if (devices != null) {
             for (var i = 0; i < devices.length; i++) {
@@ -230,7 +233,7 @@
                 return moment(res.DateTime.Now).startOf('month').format();
             }
             else if (groupType === "Yıl") {
-                return moment(res.DateTime.Now).startOf('year').format();;
+                return moment(res.DateTime.Now).startOf('year').format();
             }
         });
         
@@ -269,10 +272,77 @@
                 }
             }
         }
-        console.log(result);
+        drawChart(result, cardId, groupType, dataType);
     };
 
-    function drawChart() {
-
+    function drawChart(result, cardId, groupType, dataType) {
+        var ctx = $('#chart-' + cardId);
+        if (charts[cardId] != undefined || charts[cardId] != null) {
+            charts[cardId].destroy();
+        }
+        var chartLabels=[];
+        var chartData = [];
+        if (groupType === "Saat") {
+            for (var i = 0; i < result.length; i++) {
+                chartLabels.push(moment(result[i].date).locale('tr').format('DD MMMM - HH:mm'));
+                chartData.push(result[i].measurements);
+            }
+        }
+        else if (groupType === "Gün") {
+            for (var i = 0; i < result.length; i++) {
+                chartLabels.push(result[i].date);
+                chartData.push(result[i].measurements);
+            }
+        }
+        else if (groupType === "Hafta") {
+            for (var i = 0; i < result.length; i++) {
+                chartLabels.push(result[i].date);
+                chartData.push(result[i].measurements);
+            }
+        }
+        else if (groupType === "Ay") {
+            for (var i = 0; i < result.length; i++) {
+                chartLabels.push(result[i].date);
+                chartData.push(result[i].measurements);
+            }
+        }
+        else if (groupType === "Yıl") {
+            for (var i = 0; i < result.length; i++) {
+                chartLabels.push(result[i].date);
+                chartData.push(result[i].measurements);
+            }
+        }
+        
+        charts[cardId] = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: '# of Votes',
+                    data: chartData,
+                    backgroundColor: [
+                        'rgba(78, 115, 223, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgba(78, 115, 223, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    yAxes: [{
+                        ticks: {
+                            beginAtZero: true
+                        }
+                    }],
+                    xAxes: [{
+                        ticks: {
+                            autoSkip: false
+                        }
+                    }]
+                }
+            }
+        });
     }
 </script>
