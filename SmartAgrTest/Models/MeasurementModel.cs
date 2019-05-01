@@ -31,7 +31,7 @@ namespace SmartAgrTest.Models
         public List<MeasurementEntity> getMeasurementsBetweenDates(string chipId, DateTime from, DateTime to)
         {
             var filterBuilder = Builders<MeasurementEntity>.Filter;
-            var filter = filterBuilder.Gte(x => x.DateTime.Now, from) & filterBuilder.Lte(x => x.DateTime.Now, to);
+            var filter = filterBuilder.Eq(x => x.ChipId, chipId) & filterBuilder.Gte(x => x.DateTime.Now, from) & filterBuilder.Lte(x => x.DateTime.Now, to);
             return measurementCollection.Find(filter).ToList();
         }
     }

@@ -204,7 +204,7 @@
         var from = $("#dateTimePickerFrom-" + cardId).datetimepicker('viewDate').toISOString();
         var to = $("#dateTimePickerTo-" + cardId).datetimepicker('viewDate').toISOString();
         var groupType = $("#dropdownSelectedGroup-" + cardId)[0].innerHTML.trim();
-        var dataType = $("#dropdownSelectedType-1")[0].innerHTML.trim();
+        var dataType = $("#dropdownSelectedType-"+cardId)[0].innerHTML.trim();
         console.log(deviceId, from, to);
         $.ajax({
             type: "POST",
@@ -219,6 +219,7 @@
     };
 
     function groupResults(result, cardId, groupType, dataType) {
+        console.log("raw:", result);
         var dayGroups = _.groupBy(result, function (res) {
             if (groupType === "Saat") {
                 return moment(res.DateTime.Now).startOf('hour').format();
@@ -237,13 +238,14 @@
             }
         });
         
-        var result = _.map(dayGroups, function (group, date) {
-            return {
-                date: date,
-                measurements: group
-            }
-        });
-        if (groupType!="Yok") {
+        
+        if (groupType != "Yok") {
+            var result = _.map(dayGroups, function (group, date) {
+                return {
+                    date: date,
+                    measurements: group
+                }
+            });
             if (dataType == "Sıcaklık") {
                 for (var i = 0; i < result.length; i++) {
                     var sum = 0;
@@ -276,49 +278,83 @@
     };
 
     function drawChart(result, cardId, groupType, dataType) {
+        console.log(result, cardId, groupType, dataType);
         var ctx = $('#chart-' + cardId);
         if (charts[cardId] != undefined || charts[cardId] != null) {
             charts[cardId].destroy();
         }
         var chartLabels=[];
         var chartData = [];
+        var legendStr = "";
+        var showX = true;
+        var chartType = 'line';
+        if (result.length>50) {
+            showX = false;
+        }
+        else if (result.length == 1) {
+            chartType = 'bar';
+        }
+        (dataType === "Sıcaklık") ? legendStr += "Sıcaklık Ortalaması" : "";
+        (dataType === "Nem") ? legendStr += "Nem Ortalaması" : "";
+        (dataType === "Toprak Nemi") ? legendStr += "Toprak Nemi Ortalaması" : "";
         if (groupType === "Saat") {
+            legendStr = "Saatlik " + legendStr;
             for (var i = 0; i < result.length; i++) {
-                chartLabels.push(moment(result[i].date).locale('tr').format('DD MMMM - HH:mm'));
+                chartLabels.push(moment(result[i].date).locale('tr').format('DD MMM - HH:mm'));
                 chartData.push(result[i].measurements);
             }
         }
         else if (groupType === "Gün") {
+            legendStr = "Günlük " + legendStr;
             for (var i = 0; i < result.length; i++) {
-                chartLabels.push(result[i].date);
+                chartLabels.push(moment(result[i].date).locale('tr').format('DD MMMM YYYY'));
                 chartData.push(result[i].measurements);
             }
         }
         else if (groupType === "Hafta") {
+            legendStr = "Haftalık " + legendStr;
             for (var i = 0; i < result.length; i++) {
-                chartLabels.push(result[i].date);
+                chartLabels.push(moment(result[i].date).locale('tr').format('DD MMMM YYYY'));
                 chartData.push(result[i].measurements);
             }
         }
         else if (groupType === "Ay") {
+            legendStr = "Aylık " + legendStr;
             for (var i = 0; i < result.length; i++) {
-                chartLabels.push(result[i].date);
+                chartLabels.push(moment(result[i].date).locale('tr').format('MMMM YYYY'));
                 chartData.push(result[i].measurements);
             }
         }
         else if (groupType === "Yıl") {
+            legendStr = "Yıllık " + legendStr;
             for (var i = 0; i < result.length; i++) {
-                chartLabels.push(result[i].date);
+                chartLabels.push(moment(result[i].date).locale('tr').format('YYYY'));
                 chartData.push(result[i].measurements);
+            }
+        }
+        else if (groupType === "Yok") {
+            legendStr = dataType;
+            for (var i = 0; i < result.length; i++) {
+                chartLabels.push(moment(result[i].DateTime.Now).locale('tr').format('HH:mm:ss'));
+                if (dataType === "Sıcaklık") {
+                    
+                    chartData.push(result[i].Temperature);
+                }
+                else if (dataType === "Nem") {
+                    chartData.push(result[i].Humidity);
+                }
+                else if (dataType === "Toprak Nemi") {
+                    chartData.push(result[i].Moisture);
+                }
             }
         }
         
         charts[cardId] = new Chart(ctx, {
-            type: 'line',
+            type: chartType,
             data: {
                 labels: chartLabels,
                 datasets: [{
-                    label: '# of Votes',
+                    label: legendStr,
                     data: chartData,
                     backgroundColor: [
                         'rgba(78, 115, 223, 0.2)'
@@ -338,6 +374,7 @@
                     }],
                     xAxes: [{
                         ticks: {
+                            display:showX,
                             autoSkip: false
                         }
                     }]
