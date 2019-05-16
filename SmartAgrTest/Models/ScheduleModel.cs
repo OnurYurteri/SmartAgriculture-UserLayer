@@ -70,9 +70,39 @@ namespace SmartAgrTest.Models
 
         }
 
+        public bool updateStateWithScheduleId(string _id, bool state)
+        {
+            try
+            {
+                scheduleCollection.UpdateOne(
+                    Builders<ScheduleEntity>.Filter.Eq("_id", ObjectId.Parse(_id)),
+                    Builders<ScheduleEntity>.Update
+                        .Set("active", state)
+                );
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
         public int scheduleCount()
         {
             return findAll().Count;
+        }
+
+        public bool removeScheduleWithId(string _id)
+        {
+            try
+            {
+                scheduleCollection.DeleteOne(a => a.Id.Equals(_id));
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
     }
 }

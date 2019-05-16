@@ -79,5 +79,30 @@ namespace SmartAgrTest.Controllers
             }
         }
 
+        [HttpPost]
+        public JsonResult DeleteScheduleWithId(string _id)
+        {
+            if (scheduleModel.removeScheduleWithId(_id))
+            {
+                return Json(new { success = true }, JsonRequestBehavior.AllowGet);
+            }
+            else
+            {
+                return Json(new { success = false }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        [HttpPost]
+        public JsonResult UpdateStateWithScheduleId(string _id, bool state)
+        {
+            if (scheduleModel.updateStateWithScheduleId(_id, state))
+            {
+                return Json(new { success = true }, JsonRequestBehavior.AllowGet);
+            }
+            else
+            {
+                return Json(new { success = false }, JsonRequestBehavior.AllowGet);
+            }
+        }
     }
 }

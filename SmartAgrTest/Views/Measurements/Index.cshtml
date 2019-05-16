@@ -25,7 +25,8 @@
     $("#appendNewCard").click(function (e) {
         $('<div class="col-xl-6 col-md-6 mb-4">' +
             '<div class="card shadow h-100 py-2">'+
-                '<div id="card-'+(++cardCount)+'" class="card-body">' +
+                '<div id="card-' + (++cardCount) + '" class="card-body">' +
+                '<button class="btn btn-danger btn-circle btn-sm float-right" onclick="deleteCard('+cardCount+')"><i class="fas fa-trash"></i></button>'+
                 '</div>'+
             '</div>'+
           '</div>').insertBefore($("#appendNewCard").parent());
@@ -335,7 +336,7 @@
         else if (groupType === "Yok") {
             legendStr = dataType;
             for (var i = 0; i < result.length; i++) {
-                chartLabels.push(moment(result[i].DateTime.Now).locale('tr').format('HH:mm:ss'));
+                chartLabels.push(moment(result[i].DateTime.Now).locale('tr').format('DD MMM YYYY - HH:mm:ss'));
                 if (dataType === "Sıcaklık") {
                     
                     chartData.push(result[i].Temperature);
@@ -381,5 +382,11 @@
                 }
             }
         });
+    }
+
+    function deleteCard(cardId) {
+        $("#card-" + cardId).parent().parent().remove();
+        charts[cardId].destroy();
+        console.log(cardId);
     }
 </script>

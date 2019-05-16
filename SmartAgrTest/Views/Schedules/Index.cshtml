@@ -72,9 +72,30 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
+            <div id="scheduleModalFooter" class="modal-footer">
+                
                 <button class="btn btn-secondary" type="button" data-dismiss="modal">Kapat</button>
                 <button class="btn btn-primary" onclick="updateSchedule()" id="saveButton">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deletionModal" tabindex="-1" role="dialog" aria-labelledby="scheduleModal" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header shadow">
+                <h5 class="modal-title">Programı Sil?</h5>
+                <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                Programı silmek istediğinize emin misiniz?
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-dismiss="modal">Kapat</button>
+                <button class="btn btn-danger" onclick="deleteScheduleWithId()">Sil</button>
             </div>
         </div>
     </div>
@@ -102,9 +123,12 @@
         $(this).removeClass('bg-gray-100 pointer');
     });
 
-    $('#dataTable tbody').on('click', 'tr', function () {
-        initializeScheduleModal($(this)[0].cells[0].textContent);
+    $('#dataTable tbody').on('click', 'tr', function (e) {
+        if (e.target.tagName.toLowerCase() != "button" && e.target.tagName.toLowerCase() != "i") {
+            initializeScheduleModal($(this)[0].cells[0].textContent);
+        }
     });
+
 
     $("#checkDiv").click(repeatCheck);
 
@@ -145,7 +169,7 @@
                     var toEpoch = parseInt(schedules[i].To.slice(6, -2));
                     //new Date(parseInt(schedules[0].From.slice(6,-2))).toLocaleTimeString()
                     var dtData = [schedules[i].Id, schedules[i].ChipId, schedules[i].Description, days, new Date(fromEpoch).toLocaleTimeString(), new Date(toEpoch).toLocaleTimeString()];
-                    (schedules[i].Active) ? dtData.push('<span href="#" class="btn btn-success btn-circle btn-sm"> <i class="fas fa-play"></i> </span>') : dtData.push('<span href="#" class="btn btn-warning btn-circle btn-sm"> <i class="fas fa-pause"></i> </span>');
+                    (schedules[i].Active) ? dtData.push('<button class="btn btn-success btn-circle btn-sm" onclick="switchScheduleState(\'' + schedules[i].Id + '\',false)"> <i class="fas fa-play"></i> </button>') : dtData.push('<button class="btn btn-warning btn-circle btn-sm" onclick="switchScheduleState(\'' + schedules[i].Id + '\',true)"> <i class="fas fa-pause"></i> </button>');
                     dt.row.add(dtData).draw(false);
                     
                 }
@@ -154,12 +178,32 @@
                     var fromEpoch = parseInt(schedules[i].From.slice(6, -2));
                     var toEpoch = parseInt(schedules[i].To.slice(6, -2));
                     var dtData = [schedules[i].Id, schedules[i].ChipId, schedules[i].Description, "–", new Date(fromEpoch).toLocaleString(), new Date(toEpoch).toLocaleString()];
-                    (schedules[i].Active) ? dtData.push('<span href="#" class="btn btn-success btn-circle btn-sm"> <i class="fas fa-play"></i> </span>') : dtData.push('<span href="#" class="btn btn-warning btn-circle btn-sm"> <i class="fas fa-pause"></i> </span>');
+                    (schedules[i].Active) ? dtData.push('<button class="btn btn-success btn-circle btn-sm" onclick="switchScheduleState(\'' + schedules[i].Id + '\',false)"> <i class="fas fa-play"></i> </button>') : dtData.push('<button class="btn btn-warning btn-circle btn-sm" onclick="switchScheduleState(\'' + schedules[i].Id + '\',true)"> <i class="fas fa-pause"></i> </button>');
                     dt.row.add(dtData).draw(false);
                 }
                 
             }
         }
+    }
+
+    function switchScheduleState(_id, stateToUpdate) {
+        console.log("{'_id':'" + _id + "', 'state':'" + stateToUpdate + "'}");
+        $.ajax({
+            type: "POST",
+            url: '/Schedules/UpdateStateWithScheduleId',
+            contentType: "application/json; charset=utf-8",
+            data: "{'_id':'" + _id + "', 'state':'"+ stateToUpdate +"'}",
+            dataType: "json",
+            success: function (result) {
+                if (result.success) {
+                    getSchedules();
+                }
+                else {
+                    console.log("başarısız");
+                }
+            }
+        });
+        console.log(_id, stateToUpdate);
     }
 
     function initializeScheduleModal(_id) {
@@ -175,7 +219,13 @@
         }
         (selectedSchedule.Repeatable) ? $("#doesRepeat").attr('checked', true) : $("#doesRepeat").attr('checked', false);
         (selectedSchedule.Repeatable) ? appendRepeated(selectedSchedule) : appendNonRepeated(selectedSchedule);
+        $("#deleteButton").remove();
+        $("#scheduleModalFooter").prepend('<button id="deleteButton" class="btn btn-danger btn-icon-split mr-auto" onclick="initializeDeleteModal()"><span class="icon text-white-50"><i class="fas fa-trash"></i></span></button>');
         $("#scheduleModal").modal('show');
+    }
+
+    function initializeDeleteModal() {
+        $("#deletionModal").modal('show');
     }
 
     function getScheduleById(_id) {
@@ -421,6 +471,7 @@
         selectedSchedule.OccurOn.Sunday = false;
         (selectedSchedule.Repeatable) ? $("#doesRepeat").attr('checked', true) : $("#doesRepeat").attr('checked', false);
         (selectedSchedule.Repeatable) ? appendRepeated(selectedSchedule) : appendNonRepeated(selectedSchedule);
+        $("#deleteButton").remove();
         $("#scheduleModal").modal('show');
     }
 
@@ -451,6 +502,32 @@
             }
         });
     }
+
+    function deleteScheduleWithId() {
+        if (selectedSchedule!=null) {
+            console.log("{'_id':'" + selectedSchedule.Id + "'}");
+            $.ajax({
+                type: "POST",
+                url: '/Schedules/DeleteScheduleWithId',
+                contentType: "application/json; charset=utf-8",
+                data: "{'_id':'" + selectedSchedule.Id + "'}",
+                dataType: "json",
+                success: function (result) {
+                    if (result.success) {
+                        getSchedules();
+                        console.log("silindi");
+                        $("#deletionModal").modal('hide');
+                        $("#scheduleModal").modal('hide');
+                    }
+                    else {
+                        console.log("başarısız");
+                    }
+                }
+            });
+        }
+        
+    }
+
     function cloneObj(obj) {
         return JSON.parse(JSON.stringify(obj));
     }

@@ -69,5 +69,31 @@ namespace SmartAgrTest.Controllers
                 return Json(new { success = false }, JsonRequestBehavior.AllowGet);
             }
         }
+
+        [HttpPost]
+        public JsonResult DeleteTriggerWithId(string _id)
+        {
+            if (triggerModel.removeTriggerWithId(_id))
+            {
+                return Json(new { success = true }, JsonRequestBehavior.AllowGet);
+            }
+            else
+            {
+                return Json(new { success = false }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        [HttpPost]
+        public JsonResult UpdateStateWithTriggerId(string _id, bool state)
+        {
+            if (triggerModel.updateStateWithTriggerId(_id, state))
+            {
+                return Json(new { success = true }, JsonRequestBehavior.AllowGet);
+            }
+            else
+            {
+                return Json(new { success = false }, JsonRequestBehavior.AllowGet);
+            }
+        }
     }
 }

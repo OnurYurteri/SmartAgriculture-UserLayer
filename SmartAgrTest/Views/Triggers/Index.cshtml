@@ -107,13 +107,34 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
+            <div id="triggerModalFooter" class="modal-footer">
                 <button class="btn btn-secondary" type="button" data-dismiss="modal">Kapat</button>
                 <button class="btn btn-primary" onclick="updateTrigger()" id="saveButton">Kaydet</button>
             </div>
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="deletionModal" tabindex="-1" role="dialog" aria-labelledby="triggerModal" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header shadow">
+                <h5 class="modal-title">Tetik Eylemi Sil?</h5>
+                <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                Tetik eylemi silmek istediğinize emin misiniz?
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-dismiss="modal">Kapat</button>
+                <button class="btn btn-danger" onclick="deleteTriggerWithId()">Sil</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script type="text/javascript">
     var triggers;
     var devices;
@@ -140,8 +161,10 @@
         $(this).removeClass('bg-gray-100 pointer');
     });
 
-    $('#dataTable tbody').on('click', 'tr', function () {
-        initializeTriggerModal($(this)[0].cells[0].textContent);
+    $('#dataTable tbody').on('click', 'tr', function (e) {
+        if (e.target.tagName.toLowerCase() != "button" && e.target.tagName.toLowerCase() != "i") {
+            initializeTriggerModal($(this)[0].cells[0].textContent);
+        }
     });
     $("#checkDiv").click(function () {
         var checkState = $("#isRule").is(":checked");
@@ -224,7 +247,7 @@
                 var ruleStr = "";
                 (triggers[i].IsRule) ? ruleStr += "Evet" : ruleStr += "Hayır";
                 var dtData = [triggers[i].Id, triggers[i].Description, sourceDeviceStr, sourceType, triggers[i].FromVal, triggers[i].ToVal, actionDeviceStr, ruleStr];
-                (triggers[i].Active) ? dtData.push('<span href="#" class="btn btn-success btn-circle btn-sm"> <i class="fas fa-play"></i> </span>') : dtData.push('<span href="#" class="btn btn-warning btn-circle btn-sm"> <i class="fas fa-pause"></i> </span>');
+                (triggers[i].Active) ? dtData.push('<button class="btn btn-success btn-circle btn-sm" onclick="switchTriggerState(\'' + triggers[i].Id + '\',false)"> <i class="fas fa-play"></i> </button>') : dtData.push('<button class="btn btn-warning btn-circle btn-sm" onclick="switchTriggerState(\'' + triggers[i].Id + '\',true)"> <i class="fas fa-pause"></i> </button>');
                 dt.row.add(dtData).draw(false);
             }
         }
@@ -242,6 +265,26 @@
         $("#appendRelaysHere").empty();
         $("#labelMin").val("");
         $("#labelMax").val("");
+    }
+
+    function switchTriggerState(_id, stateToUpdate) {
+        console.log("{'_id':'" + _id + "', 'state':'" + stateToUpdate + "'}");
+        $.ajax({
+            type: "POST",
+            url: '/Triggers/UpdateStateWithTriggerId',
+            contentType: "application/json; charset=utf-8",
+            data: "{'_id':'" + _id + "', 'state':'" + stateToUpdate + "'}",
+            dataType: "json",
+            success: function (result) {
+                if (result.success) {
+                    getTriggers();
+                }
+                else {
+                    console.log("başarısız");
+                }
+            }
+        });
+        console.log(_id, stateToUpdate);
     }
 
     function initializeTriggerModal(id) {
@@ -279,7 +322,13 @@
 
         $("#isRule").attr('checked', selectedTrigger.IsRule);
 
+        $("#deleteButton").remove();
+        $("#triggerModalFooter").prepend('<button id="deleteButton" class="btn btn-danger btn-icon-split mr-auto" onclick="initializeDeleteModal()"><span class="icon text-white-50"><i class="fas fa-trash"></i></span></button>');
         $("#triggerModal").modal('show');
+    }
+
+    function initializeDeleteModal() {
+        $("#deletionModal").modal('show');
     }
 
     function initializeNewModal() {
@@ -299,6 +348,7 @@
             $("#appendRelaysHere").append('<button class="dropdown-item" onclick="selectNewRelay($(this))" id="' + relayDevices[i].ChipId + '">' + relayDevices[i].ChipId + ' − ' + relayDevices[i].Alias + '</button>');
         }
 
+        $("#deleteButton").remove();
         $("#triggerModal").modal('show');
     }
 
@@ -427,6 +477,31 @@
             }
         });
     };
+
+    function deleteTriggerWithId() {
+        if (selectedTrigger != null) {
+            console.log("{'_id':'" + selectedTrigger.Id + "'}");
+            $.ajax({
+                type: "POST",
+                url: '/Triggers/DeleteTriggerWithId',
+                contentType: "application/json; charset=utf-8",
+                data: "{'_id':'" + selectedTrigger.Id + "'}",
+                dataType: "json",
+                success: function (result) {
+                    if (result.success) {
+                        getTriggers();
+                        console.log("silindi");
+                        $("#deletionModal").modal('hide');
+                        $("#triggerModal").modal('hide');
+                    }
+                    else {
+                        console.log("başarısız");
+                    }
+                }
+            });
+        }
+
+    }
 
     function cloneObj(obj) {
         return JSON.parse(JSON.stringify(obj));

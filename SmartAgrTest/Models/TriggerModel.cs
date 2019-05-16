@@ -65,5 +65,35 @@ namespace SmartAgrTest.Models
             }
 
         }
+
+        public bool updateStateWithTriggerId(string _id, bool state)
+        {
+            try
+            {
+                triggerCollection.UpdateOne(
+                    Builders<TriggerEntity>.Filter.Eq("_id", ObjectId.Parse(_id)),
+                    Builders<TriggerEntity>.Update
+                        .Set("active", state)
+                );
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        public bool removeTriggerWithId(string _id)
+        {
+            try
+            {
+                triggerCollection.DeleteOne(a => a.Id.Equals(_id));
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
     }
 }
